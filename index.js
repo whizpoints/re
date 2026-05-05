@@ -26,6 +26,7 @@ if (rowCount.count === 0) {
   const insert = db.prepare('INSERT INTO files (filename, display_name) VALUES (?, ?)');
   insert.run('faith.pdf', 'Faith Document');
   insert.run('micheal.pdf', 'Michael Portfolio');
+  insert.run('james.pdf', 'Eulogy For James');
 }
 
 // ... keep the rest of your index.js code exactly as it is from here down!
