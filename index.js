@@ -29,8 +29,6 @@ if (rowCount.count === 0) {
   insert.run('james.pdf', 'Eulogy For James');
 }
 
-// ... keep the rest of your index.js code exactly as it is from here down!
-
 // Dashboard HTML
 function renderDashboard(files) {
   const totalDownloads = files.reduce((sum, f) => sum + f.visit_count, 0);
@@ -61,7 +59,7 @@ function renderDashboard(files) {
             <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z"/>
             <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/>
           </svg>
-          Open File
+          Open
         </a>
         <button class="btn-secondary copy-btn" data-url="${file.filename}">
           <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
@@ -81,163 +79,91 @@ function renderDashboard(files) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Whizpoint Solutions — File Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --primary: #0066ff;
-      --primary-dark: #0052cc;
-      --primary-light: #e8f0fe;
-      --success: #10b981;
-      --neutral-50: #f8fafc;
-      --neutral-100: #f1f5f9;
-      --neutral-200: #e2e8f0;
-      --neutral-300: #cbd5e1;
-      --neutral-400: #94a3b8;
-      --neutral-500: #64748b;
-      --neutral-600: #475569;
-      --neutral-700: #334155;
-      --neutral-800: #1e293b;
-      --neutral-900: #0f172a;
+      --primary: #0f172a;
+      --accent: #3b82f6;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--neutral-50);
-      color: var(--neutral-800);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
 
     .header {
-      background: linear-gradient(135deg, #0a1628 0%, #1a2f5a 100%);
-      padding: 0 24px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      position: sticky; top: 0; z-index: 100;
     }
     .header-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 64px;
+      max-width: 1200px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between; height: 72px;
     }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-    }
+    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
     .logo-icon {
-      width: 36px; height: 36px;
-      background: var(--primary);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; background: var(--primary);
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      color: white;
     }
-    .logo-icon svg { color: white; }
-    .logo-text { font-size: 18px; font-weight: 700; color: white; letter-spacing: -0.3px; }
-    .logo-text span { color: #60a5fa; }
-    .header-stat {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 20px;
-      padding: 6px 14px;
-      display: flex; align-items: center; gap: 6px;
-      color: white; font-size: 13px; font-weight: 500;
-    }
-    .header-stat .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 6px var(--success); }
-
+    .logo-text { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+    
     .hero {
-      background: linear-gradient(180deg, #0a1628 0%, #0f1f42 60%, var(--neutral-50) 100%);
-      padding: 56px 24px 80px;
+      max-width: 1200px; margin: 0 auto; padding: 80px 24px 60px;
       text-align: center;
     }
-    .hero h1 {
-      font-size: clamp(28px, 5vw, 48px);
-      font-weight: 700; color: white; letter-spacing: -1px; line-height: 1.15;
-    }
-    .hero h1 span { color: #60a5fa; }
-    .hero p {
-      margin-top: 16px; color: #93c5fd;
-      font-size: clamp(14px, 2.5vw, 17px);
-      max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.6;
-    }
-    .hero-stats {
-      margin-top: 40px;
-      display: inline-flex; gap: 32px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 16px; padding: 20px 32px;
-    }
-    .stat-item { text-align: center; }
-    .stat-num { font-size: 32px; font-weight: 700; color: white; line-height: 1; }
-    .stat-label { font-size: 12px; color: #93c5fd; margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-    .divider { width: 1px; background: rgba(255,255,255,0.15); }
+    .hero h1 { font-size: clamp(32px, 5vw, 56px); font-weight: 700; letter-spacing: -1.5px; line-height: 1.1; }
+    .hero p { margin-top: 16px; color: var(--text-muted); font-size: 18px; max-width: 500px; margin-inline: auto; }
 
-    .content { max-width: 1100px; margin: -40px auto 0; padding: 0 24px 80px; }
-    .section-label {
-      font-size: 13px; font-weight: 600; color: var(--neutral-500);
-      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 20px;
-    }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .content { max-width: 1200px; margin: 0 auto; padding: 0 24px 100px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
 
     .card {
-      background: white; border-radius: 16px;
-      border: 1px solid var(--neutral-200); overflow: hidden;
-      transition: box-shadow 0.2s, transform 0.2s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      background: var(--surface); border-radius: 20px;
+      border: 1px solid rgba(0,0,0,0.08); overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
-    .card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.1); transform: translateY(-2px); }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border-color: rgba(0,0,0,0.12); }
     .card-icon {
-      background: linear-gradient(135deg, #eff6ff, #dbeafe);
-      padding: 28px 24px 20px;
+      background: #f1f5f9; padding: 32px 24px;
       display: flex; align-items: center; justify-content: center;
     }
-    .card-icon svg { width: 52px; height: 52px; color: var(--primary); filter: drop-shadow(0 4px 8px rgba(0,102,255,0.2)); }
-    .card-body { padding: 20px 20px 4px; }
-    .card-title { font-size: 18px; font-weight: 700; color: var(--neutral-800); letter-spacing: -0.3px; }
-    .card-filename { font-size: 13px; color: var(--neutral-400); margin-top: 4px; font-family: 'SFMono-Regular', Consolas, monospace; }
-    .card-meta { margin-top: 12px; }
+    .card-icon svg { width: 48px; height: 48px; color: var(--primary); }
+    .card-body { padding: 24px; }
+    .card-title { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+    .card-filename { font-size: 14px; color: var(--text-muted); margin-top: 4px; font-family: ui-monospace, monospace; }
+    .card-meta { margin-top: 16px; }
     .badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: var(--primary-light); color: var(--primary-dark);
-      padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #f1f5f9; color: var(--text);
+      padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;
     }
-    .card-actions { padding: 16px 20px 20px; display: flex; gap: 10px; }
-    .btn-primary {
-      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-      background: var(--primary); color: white; border: none; border-radius: 10px;
-      padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
-      text-decoration: none; transition: background 0.15s, transform 0.1s;
+    .card-actions { padding: 0 24px 24px; display: flex; gap: 12px; }
+    .btn-primary, .btn-secondary {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer;
+      text-decoration: none; transition: all 0.2s; border: none;
     }
-    .btn-primary:hover { background: var(--primary-dark); transform: scale(0.98); }
-    .btn-secondary {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      background: var(--neutral-100); color: var(--neutral-700);
-      border: 1px solid var(--neutral-200); border-radius: 10px;
-      padding: 10px 14px; font-size: 14px; font-weight: 500; cursor: pointer;
-      transition: background 0.15s, transform 0.1s; white-space: nowrap;
-    }
-    .btn-secondary:hover { background: var(--neutral-200); transform: scale(0.98); }
-    .btn-secondary.copied { background: #d1fae5; color: var(--success); border-color: #a7f3d0; }
-
-    .footer {
-      background: var(--neutral-900); color: var(--neutral-400);
-      text-align: center; padding: 32px 24px; font-size: 13px; line-height: 1.6;
-    }
-    .footer a { color: #60a5fa; text-decoration: none; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #1e293b; }
+    .btn-secondary { background: white; color: var(--text); border: 1px solid #e2e8f0; }
+    .btn-secondary:hover { background: #f8fafc; }
+    .btn-secondary.copied { background: #10b981; color: white; border-color: #10b981; }
 
     @media (max-width: 640px) {
-      .header-inner { height: 56px; }
-      .logo-text { font-size: 16px; }
-      .hero { padding: 40px 16px 64px; }
-      .hero-stats { gap: 20px; padding: 16px 24px; flex-wrap: wrap; justify-content: center; }
-      .divider { display: none; }
-      .content { padding: 0 16px 60px; }
-      .grid { grid-template-columns: 1fr; gap: 16px; }
+      .hero { padding: 60px 24px 40px; }
+      .grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -247,47 +173,25 @@ function renderDashboard(files) {
   <div class="header-inner">
     <a href="/" class="logo">
       <div class="logo-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
         </svg>
       </div>
-      <span class="logo-text">Whizpoint <span>Solutions</span></span>
+      <span class="logo-text">Whizpoint Solutions</span>
     </a>
-    <div class="header-stat">
-      <div class="dot"></div>
-      ${totalDownloads.toLocaleString()} Total Downloads
-    </div>
   </div>
 </header>
 
 <section class="hero">
-  <h1>Secure File <span>Hosting</span><br>Made Simple</h1>
-  <p>Fast, reliable document sharing for Whizpoint Solutions clients and partners.</p>
-  <div class="hero-stats">
-    <div class="stat-item">
-      <div class="stat-num">${files.length}</div>
-      <div class="stat-label">Files Hosted</div>
-    </div>
-    <div class="divider"></div>
-    <div class="stat-item">
-      <div class="stat-num">${totalDownloads.toLocaleString()}</div>
-      <div class="stat-label">Total Downloads</div>
-    </div>
-  </div>
+  <h1>Secure File Hub</h1>
+  <p>Fast, reliable document sharing for Whizpoint Solutions clients.</p>
 </section>
 
 <main class="content">
-  <p class="section-label">Hosted Documents</p>
   <div class="grid">
     ${cards}
   </div>
 </main>
-
-<footer class="footer">
-  <p><strong style="color:white">Whizpoint Solutions</strong></p>
-  <p style="margin-top:8px">For Cyber, iTax, or E-Citizen services — call or text <a href="tel:0740841168">0740841168</a></p>
-  <p style="margin-top:8px; font-size:12px; color:#475569">© ${new Date().getFullYear()} Whizpoint Solutions. All rights reserved.</p>
-</footer>
 
 <script>
   document.querySelectorAll('.copy-btn').forEach(btn => {
@@ -315,7 +219,7 @@ function renderDashboard(files) {
 </html>`;
 }
 
-// Interstitial splash page HTML
+// Ultra-Modern Minimalist Interstitial Splash HTML
 function renderSplash(filename, displayName) {
   const fileUrl = 'https://qr.whizpoint.app/' + filename;
   return `<!DOCTYPE html>
@@ -323,179 +227,124 @@ function renderSplash(filename, displayName) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Opening ${displayName} — Whizpoint Solutions</title>
+  <title>Opening File — Whizpoint Solutions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --primary: #0066ff; --primary-dark: #0052cc; --success: #10b981; }
-
+    
     body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background: linear-gradient(135deg, #0a1628 0%, #1a2f5a 100%);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #0f172a;
+      background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
       min-height: 100vh;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       padding: 24px; color: white;
+      -webkit-font-smoothing: antialiased;
     }
 
-    .container { max-width: 480px; width: 100%; text-align: center; }
-
-    .logo {
-      display: inline-flex; align-items: center; gap: 10px; margin-bottom: 40px;
-    }
-    .logo-icon {
-      width: 40px; height: 40px; background: var(--primary);
-      border-radius: 10px; display: flex; align-items: center; justify-content: center;
-    }
-    .logo-text { font-size: 20px; font-weight: 700; color: white; }
-
-    .card {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 24px; padding: 40px 32px;
-      backdrop-filter: blur(10px);
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 48px 32px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     }
 
-    .ring-wrap { position: relative; width: 120px; height: 120px; margin: 0 auto 28px; }
-    .ring-svg { width: 120px; height: 120px; transform: rotate(-90deg); }
-    .ring-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 6; }
-    .ring-progress {
-      fill: none; stroke: var(--primary); stroke-width: 6;
-      stroke-linecap: round;
-      stroke-dasharray: 283; stroke-dashoffset: 283;
-      transition: stroke-dashoffset 1s linear;
-      filter: drop-shadow(0 0 8px rgba(0,102,255,0.7));
-    }
-    .ring-num {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .countdown { font-size: 36px; font-weight: 700; color: white; line-height: 1; }
-    .countdown-label { font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    .brand { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 32px; color: #f8fafc; opacity: 0.9; }
 
-    .preparing { font-size: 13px; color: #93c5fd; margin-bottom: 20px; font-weight: 500; }
-    .file-url {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 12px 16px;
-      font-size: 13px; color: #60a5fa; word-break: break-all; margin-bottom: 24px;
-      font-family: 'SFMono-Regular', Consolas, monospace;
+    .timer-wrap { margin-bottom: 24px; }
+    .timer-num { 
+      font-size: 64px; font-weight: 700; line-height: 1;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
+    .timer-label { font-size: 14px; font-weight: 500; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
 
-    .cta-box {
-      background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.1));
-      border: 1px solid rgba(16,185,129,0.3);
-      border-radius: 14px; padding: 20px; margin-bottom: 28px;
+    .info-text { font-size: 16px; color: #cbd5e1; margin-bottom: 24px; font-weight: 500; }
+    
+    .context-box {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px; padding: 16px;
+      margin-bottom: 24px; font-size: 14px; color: #94a3b8; line-height: 1.6;
     }
-    .cta-title { font-size: 15px; font-weight: 700; color: white; margin-bottom: 6px; }
-    .cta-text { font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.6; }
-    .cta-number {
-      display: inline-block; margin-top: 10px;
-      background: var(--success); color: white;
-      padding: 6px 18px; border-radius: 20px;
-      font-size: 15px; font-weight: 700; letter-spacing: 0.3px;
-      text-decoration: none;
-    }
+    .context-box strong { color: white; font-weight: 600; font-size: 15px; }
+    .context-link { color: #60a5fa; text-decoration: none; word-break: break-all; display: block; margin-top: 4px; }
 
-    .skip-link {
-      display: inline-flex; align-items: center; gap: 6px;
-      color: rgba(255,255,255,0.5); font-size: 13px; text-decoration: none;
-      padding: 10px 16px;
-      border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-      transition: all 0.2s;
-    }
-    .skip-link:hover { color: white; border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.05); }
+    .wait-text { font-size: 14px; color: #64748b; margin-bottom: 32px; }
 
-    .progress-bar { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 28px; overflow: hidden; }
-    .progress-fill {
-      height: 100%; background: var(--primary); border-radius: 2px; width: 0%;
-      transition: width 1s linear; box-shadow: 0 0 8px rgba(0,102,255,0.6);
+    .btn-skip {
+      display: block; width: 100%;
+      background: white; color: #0f172a;
+      padding: 14px 24px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; text-decoration: none;
+      transition: transform 0.2s, background 0.2s;
+      margin-bottom: 16px;
     }
+    .btn-skip:hover { background: #f8fafc; transform: scale(0.98); }
 
-    @media (max-width: 480px) { .card { padding: 32px 20px; border-radius: 20px; } }
+    .phone-link {
+      display: inline-block; font-size: 15px; font-weight: 600;
+      color: #34d399; text-decoration: none; padding: 8px;
+      transition: opacity 0.2s;
+    }
+    .phone-link:hover { opacity: 0.8; }
+
   </style>
 </head>
 <body>
-<div class="container">
-  <div class="logo">
-    <div class="logo-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
-      </svg>
-    </div>
-    <span class="logo-text">Whizpoint Solutions</span>
+
+<div class="glass-card">
+  <div class="brand">Whizpoint Solutions</div>
+  
+  <div class="timer-wrap">
+    <div class="timer-num" id="countdown">3</div>
+    <div class="timer-label">sec</div>
   </div>
 
-  <div class="card">
-    <div class="ring-wrap">
-      <svg class="ring-svg" viewBox="0 0 100 100">
-        <circle class="ring-bg" cx="50" cy="50" r="45"/>
-        <circle class="ring-progress" id="ring" cx="50" cy="50" r="45"/>
-      </svg>
-      <div class="ring-num">
-        <div class="countdown" id="countdown">10</div>
-        <div class="countdown-label">sec</div>
-      </div>
-    </div>
+  <div class="info-text">The file is being prepared...</div>
 
-    <p class="preparing">The file is being prepared...</p>
-    <div class="file-url">You are about to visit<br>${fileUrl}</div>
-
-    <div class="cta-box">
-      <div class="cta-title">Need Help with Cyber, iTax or E-Citizen?</div>
-      <div class="cta-text">For any Cyber, iTax, or E-Citizen services, please text or call</div>
-      <a href="tel:0740841168" class="cta-number">0740841168</a>
-    </div>
-
-    <a href="/${filename}?download=true" class="skip-link">
-      <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
-        <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z"/>
-        <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/>
-      </svg>
-      Download Now (skip countdown)
-    </a>
-
-    <div class="progress-bar">
-      <div class="progress-fill" id="progress"></div>
-    </div>
+  <div class="context-box">
+    You are about to visit <strong>${displayName}</strong> from<br>
+    <a href="${fileUrl}" class="context-link">${fileUrl}</a>
   </div>
+
+  <div class="wait-text">Please wait while we load your file</div>
+
+  <a href="/${filename}?download=true" class="btn-skip">Download Now (skip countdown)</a>
+  <a href="tel:0740841168" class="phone-link">Tell 0740 841 168</a>
 </div>
 
 <script>
-  const TOTAL = 10;
-  const circumference = 2 * Math.PI * 45;
-  const ring = document.getElementById('ring');
+  let remaining = 3; // Strictly set to 3 seconds
   const countEl = document.getElementById('countdown');
-  const progress = document.getElementById('progress');
   const redirectUrl = '/${filename}?download=true';
-
-  let remaining = TOTAL;
 
   function tick() {
     remaining--;
     countEl.textContent = remaining;
-    const pct = (TOTAL - remaining) / TOTAL;
-    ring.style.strokeDashoffset = circumference * (1 - pct);
-    progress.style.width = (pct * 100) + '%';
     if (remaining <= 0) {
       window.location.href = redirectUrl;
     } else {
       setTimeout(tick, 1000);
     }
   }
-
-  setTimeout(() => {
-    ring.style.strokeDashoffset = circumference * (1 - 1/TOTAL);
-    progress.style.width = (100/TOTAL) + '%';
-    setTimeout(tick, 1000);
-  }, 100);
+  
+  // Start countdown
+  setTimeout(tick, 1000);
 </script>
 </body>
 </html>`;
 }
 
-// Dashboard route (updated to use SQLite)
+// Dashboard route
 app.get('/', (req, res) => {
   try {
     const files = db.prepare('SELECT * FROM files ORDER BY created_at ASC').all();
@@ -506,7 +355,7 @@ app.get('/', (req, res) => {
   }
 });
 
-// PDF interceptor & streaming serve route (updated to use SQLite)
+// PDF interceptor & streaming serve route
 app.get('/:filename', (req, res) => {
   const { filename } = req.params;
 
@@ -536,7 +385,7 @@ app.get('/:filename', (req, res) => {
     return stream.pipe(res);
   }
 
-  // Show splash/interstitial
+  // Show minimalist 3-second splash/interstitial
   try {
     const fileRecord = db.prepare('SELECT display_name FROM files WHERE filename = ?').get(filename);
     const displayName = fileRecord?.display_name || filename.replace('.pdf', '');
