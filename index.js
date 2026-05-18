@@ -1,33 +1,16 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { DatabaseSync } = require('node:sqlite'); // <-- Using Node's native SQLite!
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize Native SQLite Database
-const db = new DatabaseSync('database.db');
-
-// Create table if it doesn't exist (using .exec() instead of .run())
-db.exec(`
-  CREATE TABLE IF NOT EXISTS files (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    filename TEXT UNIQUE,
-    display_name TEXT,
-    visit_count INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-
-// Seed initial data if table is empty
-const rowCount = db.prepare('SELECT count(*) as count FROM files').get();
-if (rowCount.count === 0) {
-  const insert = db.prepare('INSERT INTO files (filename, display_name) VALUES (?, ?)');
-  insert.run('faith.pdf', 'Faith Document');
-  insert.run('micheal.pdf', 'Michael Portfolio');
-  insert.run('james.pdf', 'Eulogy For James');
-}
+// Static Files Data (Replacing SQLite)
+const FILES_DATA = [
+  { filename: 'faith.pdf', display_name: 'Faith Document', visit_count: 0 },
+  { filename: 'john.pdf', display_name: 'Eulogy For John Mugo', visit_count: 0 },
+  { filename: 'james.pdf', display_name: 'Eulogy For James', visit_count: 0 }
+];
 
 // Dashboard HTML
 function renderDashboard(files) {
@@ -346,13 +329,7 @@ function renderSplash(filename, displayName) {
 
 // Dashboard route
 app.get('/', (req, res) => {
-  try {
-    const files = db.prepare('SELECT * FROM files ORDER BY created_at ASC').all();
-    res.send(renderDashboard(files || []));
-  } catch (err) {
-    console.error('Dashboard error:', err);
-    res.status(500).send('Error loading dashboard');
-  }
+  res.send(renderDashboard(FILES_DATA));
 });
 
 // PDF interceptor & streaming serve route
@@ -370,11 +347,10 @@ app.get('/:filename', (req, res) => {
   }
 
   if (req.query.download === 'true') {
-    // Increment visit count using SQLite (fire-and-forget)
-    try {
-      db.prepare('UPDATE files SET visit_count = visit_count + 1 WHERE filename = ?').run(filename);
-    } catch (err) {
-      console.error('Visit count error:', err);
+    // Increment visit count locally in memory
+    const fileRecord = FILES_DATA.find(f => f.filename === filename);
+    if (fileRecord) {
+      fileRecord.visit_count += 1;
     }
 
     // Stream the PDF
@@ -386,14 +362,9 @@ app.get('/:filename', (req, res) => {
   }
 
   // Show minimalist 3-second splash/interstitial
-  try {
-    const fileRecord = db.prepare('SELECT display_name FROM files WHERE filename = ?').get(filename);
-    const displayName = fileRecord?.display_name || filename.replace('.pdf', '');
-    res.send(renderSplash(filename, displayName));
-  } catch (err) {
-    console.error('Splash error:', err);
-    res.send(renderSplash(filename, filename.replace('.pdf', '')));
-  }
+  const fileRecord = FILES_DATA.find(f => f.filename === filename);
+  const displayName = fileRecord?.display_name || filename.replace('.pdf', '');
+  res.send(renderSplash(filename, displayName));
 });
 
 app.listen(PORT, () => {
