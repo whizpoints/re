@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 const FILES_DATA = [
   { filename: 'faith.pdf', display_name: 'Faith Document', visit_count: 0 },
   { filename: 'john.pdf', display_name: 'Eulogy For John Njenga Komu', visit_count: 9 },
-  { filename: 'james.pdf', display_name: 'Eulogy For James', visit_count: 0 }
+  { filename: 'stephen.pdf', display_name: 'Eulogy For Stephen', visit_count: 0 }
 ];
 
 // Dashboard HTML
@@ -204,7 +204,7 @@ function renderDashboard(files) {
 
 // Ultra-Modern Minimalist Interstitial Splash HTML
 function renderSplash(filename, displayName) {
-  const fileUrl = 'https://qr.whizpoint.app/' + filename;
+  const fileUrl = 'https://e.whizpoint.app/' + filename;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
