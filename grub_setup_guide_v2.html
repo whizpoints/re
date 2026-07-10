@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blueprint: Pop!_OS Custom GRUB Dual-Boot Setup</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 14mm;
+            background-color: #f8fafc;
+            @bottom-right {
+                content: counter(page);
+                font-family: 'Segoe UI', system-ui, sans-serif;
+                font-size: 8pt;
+                color: #64748b;
+            }
+            @bottom-left {
+                content: "Pop!_OS Dual-Boot Configuration System";
+                font-family: 'Segoe UI', system-ui, sans-serif;
+                font-size: 8pt;
+                color: #64748b;
+            }
+        }
+        
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.6;
+            color: #334155;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header-banner {
+            margin: -18mm -14mm 25px -14mm;
+            padding: 40px 14mm 30px 14mm;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-bottom: 3px solid #0284c7;
+            color: #ffffff;
+        }
+
+        h1 {
+            font-size: 22pt;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 12pt;
+            color: #38bdf8;
+            margin: 0 0 20px 0;
+            font-weight: 500;
+        }
+
+        .meta-info {
+            display: table;
+            width: 100%;
+            border-top: 1px solid #334155;
+            padding-top: 14px;
+            font-size: 9pt;
+            color: #94a3b8;
+        }
+
+        .meta-item {
+            display: table-cell;
+        }
+
+        .meta-item strong {
+            color: #f1f5f9;
+        }
+
+        h2 {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 30px 0 12px 0;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #e2e8f0;
+            page-break-after: avoid;
+        }
+
+        h3 {
+            font-size: 12pt;
+            font-weight: 600;
+            color: #0369a1;
+            margin: 20px 0 8px 0;
+            page-break-after: avoid;
+        }
+
+        p {
+            margin: 0 0 12px 0;
+            color: #475569;
+        }
+
+        strong {
+            color: #0f172a;
+        }
+
+        /* Pristine Light Terminal Blocks with Copy Layout */
+        .code-container {
+            position: relative;
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            margin: 14px 0;
+            page-break-inside: avoid;
+        }
+
+        pre {
+            margin: 0;
+            padding: 14px 50px 14px 14px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: "Cascadia Code", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 9.5pt;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 8.5pt;
+            cursor: pointer;
+            color: #475569;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .copy-button:hover {
+            background-color: #f8fafc;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        /* Callout Blocks */
+        .callout {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 14px;
+            margin: 20px 0;
+            border-radius: 0 6px 6px 0;
+            page-break-inside: avoid;
+        }
+
+        .callout-title {
+            font-weight: 700;
+            color: #b91c1c;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            font-size: 9pt;
+            letter-spacing: 0.5px;
+        }
+
+        .callout-info {
+            background-color: #f0f9ff;
+            border-left-color: #0284c7;
+        }
+        
+        .callout-info .callout-title {
+            color: #0369a1;
+        }
+
+        /* Grid UI Theme Cards using tables */
+        .theme-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 12px;
+            margin: 15px -12px;
+            page-break-inside: avoid;
+        }
+
+        .theme-card {
+            width: 50%;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            vertical-align: top;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .theme-name {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 11pt;
+            margin-bottom: 6px;
+        }
+
+        .theme-desc {
+            font-size: 9.5pt;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+    </style>
+    <script>
+        function copyToClipboard(button, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.innerHTML;
+                button.innerHTML = "Copied! 🏁";
+                button.style.backgroundColor = "#dcfce7";
+                button.style.color = "#15803d";
+                button.style.borderColor = "#bbf7d0";
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.backgroundColor = "#ffffff";
+                    button.style.color = "#475569";
+                    button.style.borderColor = "#cbd5e1";
+                }, 2000);
+            });
+        }
+    </script>
+</head>
+<body>
+
+    <div class="header-banner">
+        <h1>Pop!_OS Premium GRUB Configuration Template</h1>
+        <div class="subtitle">Interactive Light Mode Deployment Guide & Theme Catalog</div>
+        <div class="meta-info">
+            <div class="meta-item"><strong>Target Environment:</strong> Pop!_OS 24.04 LTS & Windows Dual-Boot</div>
+            <div class="meta-item"><strong>Firmware Architecture:</strong> Modern UEFI Layout</div>
+            <div class="meta-item"><strong>Interface Styling:</strong> Ultra Clean Light Mode</div>
+        </div>
+    </div>
+
+    <h2>📌 Overview & Diagnostic State</h2>
+    <p>
+        This guide maps out the clean migration path from the standard Pop!_OS <code>systemd-boot</code> setup to a highly custom, graphical <strong>GRUB2 Bootloader Environment</strong>. This provides flawless disk discovery and unified dual-boot options.
+    </p>
+
+    <div class="callout callout-info">
+        <div class="callout-title">💡 System Architecture Discovery Info</div>
+        <strong>Pop!_OS Native EFI Target:</strong> Located at <code>/dev/sda5</code> mapped to <code>/boot/efi</code><br>
+        <strong>Windows Partition Path:</strong> Located at <code>/dev/sda1</code> containing <code>Microsoft/Boot/bootmgfw.efi</code>
+    </div>
+
+    <h2>🚀 Phase 1: Installation & Configuration Overwrite</h2>
+    <p>Execute these core steps from a fresh terminal sequence to fully implement the clean GRUB architecture layout.</p>
+
+    <h3>1. Install Core UEFI Platform Files</h3>
+    <p>Fetch packages directly from the main OS repository nodes:</p>
+    <div class="code-container">
+        <button class="copy-button" onclick="copyToClipboard(this, 'sudo apt update \&amp;\&amp; sudo apt install grub-efi-amd64 grub-pc-bin git -y')">Copy 📋</button>
+        <pre><code>sudo apt update && sudo apt install grub-efi-amd64 grub-pc-bin git -y</code></pre>
+    </div>
+
+    <h3>2. Deploy GRUB Architecture to EFI Partition</h3>
+    <p>Force build standard directories directly into your system's dedicated boot loader sector:</p>
+    <div class="code-container">
+        <button class="copy-button" onclick="copyToClipboard(this, 'sudo grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB')">Copy 📋</button>
+        <pre><code>sudo grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB</code></pre>
+    </div>
+
+    <h3>3. Enable Dynamics OS-Prober Engine</h3>
+    <p>Override security lockouts to dynamically capture and expose Windows installation parameters:</p>
+    <div class="code-container">
+        <button class="copy-button" onclick="copyToClipboard(this, 'echo \&quot;GRUB_DISABLE_OS_PROBER=false\&quot; | sudo tee -a /etc/default/grub')">Copy 📋</button>
+        <pre><code>echo "GRUB_DISABLE_OS_PROBER=false" | sudo tee -a /etc/default/grub</code></pre>
+    </div>
+
+    <h3>4. Set Visual Timeout Window</h3>
+    <p>Expose hidden menu styles and lengthen selection availability options to exactly 5 seconds:</p>
+    <div class="code-container">
+        <button class="copy-button" onclick="copyToClipboard(this, 'sudo sed -i \&#39;s/GRUB_TIMEOUT_STYLE=hidden/GRUB_TIMEOUT_STYLE=menu/\&#39; /etc/default/grub \&amp;\&amp; sudo sed -i \&#39;s/GRUB_TIMEOUT=0/GRUB_TIMEOUT=5/\&#39; /etc/default/grub')">Copy 📋</button>
+        <pre><code>sudo sed -i 's/GRUB_TIMEOUT_STYLE=hidden/GRUB_TIMEOUT_STYLE=menu/' /etc/default/grub
+sudo sed -i 's/GRUB_TIMEOUT=0/GRUB_TIMEOUT=5/' /etc/default/grub</code></pre>
+    </div>
+
+    <h2>🎨 Phase 2: Ultra Clean UI Customization Themes</h2>
+    <p>With the structural parameters set, apply premium high-resolution themes to replace low-res legacy interface assets.</p>
+    
+    <div class="code-container">
+        <button class="copy-button" onclick="copyToClipboard(this, 'git clone https://github.com/vinceliuice/grub2-themes.git \&amp;\&amp; cd grub2-themes \&amp;\&amp; sudo ./install.sh -t tela -s 1080p')">Copy 📋</button>
+        <pre><code>git clone https://github.com/vinceliuice/grub2-themes.git
+cd grub2-themes
+sudo ./install.sh -t tela -s 1080p</code></pre>
+    </div>
+
+    <h3>Compile Changes & Build Active Selection Grid</h3>
+    <p>Always run a compilation refresh to lock parameters securely into boot structures before power cycling:</p>
+    <div class="code-container">
+        <button class="copy-button" onclick="copyToClipboard(this, 'sudo update-grub')">Copy 📋</button>
+        <pre><code>sudo update-grub</code></pre>
+    </div>
+
+    <div class="callout">
+        <div class="callout-title">⚠️ Critical Post-Installation Requirement</div>
+        During system restart, initialize firmware configurations (Press <code>F2</code> / <code>Delete</code> key). Navigate to the <strong>Boot Priority Order</strong> panel, locate option index #4, and shift it to **Position #1** to guarantee automated menu initialization.
+    </div>
+
+    <h2>💎 Phase 3: Curated Design Options Catalog</h2>
+    <p>Modify interface characteristics smoothly anytime by switching flags inside the downloaded local <code>./install.sh</code> directory:</p>
+
+    <table class="theme-table">
+        <tr>
+            <td class="theme-card">
+                <div class="theme-name">✨ Tela Slate Theme (Current Standard)</div>
+                <div class="theme-desc">Sophisticated minimal style with rounded glyph icons for OS variations over soft dark blurs. Clear and fast.</div>
+                <div class="code-container">
+                    <button class="copy-button" onclick="copyToClipboard(this, 'sudo ./install.sh -t tela -s 1080p')">Copy 📋</button>
+                    <pre><code>sudo ./install.sh -t tela -s 1080p</code></pre>
+                </div>
+            </td>
+            <td class="theme-card">
+                <div class="theme-name">🍏 Cupertino Clean Style</div>
+                <div class="theme-desc">Captures the elegant layout and presentation of classic macOS platforms with bottom-centered status indicators.</div>
+                <div class="code-container">
+                    <button class="copy-button" onclick="copyToClipboard(this, 'sudo ./install.sh -t apple -s 1080p')">Copy 📋</button>
+                    <pre><code>sudo ./install.sh -t apple -s 1080p</code></pre>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td class="theme-card">
+                <div class="theme-name">🐧 Venture Minimalist Layout</div>
+                <div class="theme-desc">Stripped-back theme framework leveraging flat vector distro design iconography and modern clean fonts.</div>
+                <div class="code-container">
+                    <button class="copy-button" onclick="copyToClipboard(this, 'sudo ./install.sh -t ventu -s 1080p')">Copy 📋</button>
+                    <pre><code>sudo ./install.sh -t ventu -s 1080p</code></pre>
+                </div>
+            </td>
+            <td class="theme-card">
+                <div class="theme-name">🎮 Cyberpunk Glowing Matrix</div>
+                <div class="theme-desc">High-contrast futuristic framework prioritizing vibrant laser pink and neon turquoise accents. Ideal for gaming builds.</div>
+                <div class="code-container">
+                    <button class="copy-button" onclick="copyToClipboard(this, 'sudo ./install.sh -t cyber -s 1080p')">Copy 📋</button>
+                    <pre><code>sudo ./install.sh -t cyber -s 1080p</code></pre>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>
