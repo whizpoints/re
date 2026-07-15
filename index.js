@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 // Static Files Data (Replacing SQLite)
 const FILES_DATA = [
   { filename: 'faith.pdf', display_name: 'Faith Document', visit_count: 0 },
-  { filename: 'john.pdf', display_name: 'Eulogy For John Njenga Komu', visit_count: 9 },
+  { filename: 'john.pdf', display_name: 'Eulogy For John Macharia', visit_count: 350 },
   { filename: 'stephen.pdf', display_name: 'Eulogy For Stephen', visit_count: 0 }
 ];
 
