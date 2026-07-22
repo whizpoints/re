@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 const FILES_DATA = [
   { filename: 'lucy.pdf', display_name: 'Eulogy For Lucy Wambui Njoroge', visit_count: 0 },
   { filename: 'john.pdf', display_name: 'Eulogy For John Macharia', visit_count: 350 },
+    { filename: 'paul.pdf', display_name: 'Eulogy For Paul Kinyajui Wanjagi', visit_count: 350 },
   { filename: 'stephen.pdf', display_name: 'Eulogy For Stephen', visit_count: 0 }
 ];
 
