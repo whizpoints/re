@@ -106,8 +106,8 @@ export default function AdminDashboard() {
           rightCanvas.height = height;
           rightCanvas.getContext('2d')?.drawImage(canvas, halfWidth, 0, halfWidth, height, 0, 0, halfWidth, height);
           
-          const leftData = leftCanvas.toDataURL('image/jpeg', 0.95);
-          const rightData = rightCanvas.toDataURL('image/jpeg', 0.95);
+          const leftData = leftCanvas.toDataURL('image/jpeg', 0.85);
+          const rightData = rightCanvas.toDataURL('image/jpeg', 0.85);
 
           if (i % 2 === 0) {
             extractedPages[N - i - 1] = leftData;
@@ -124,25 +124,31 @@ export default function AdminDashboard() {
       let completed = 0;
 
             // Parallel upload for maximum speed with progress tracking
-      const uploadPromises = extractedPages.map(async (base64, index) => {
-        try {
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ image: base64, folder: `documents/update-${targetId}` })
-          });
-          const data = await res.json();
-          if (data.url) {
-            finalPageUrls[index] = data.url;
+            // Batched uploading (3 at a time) for balance between speed and UI progress feedback
+      const concurrency = 3;
+      for (let i = 0; i < extractedPages.length; i += concurrency) {
+        const batch = extractedPages.slice(i, i + concurrency);
+        
+        await Promise.all(batch.map(async (base64, batchIndex) => {
+          const actualIndex = i + batchIndex;
+          try {
+            const res = await fetch('/api/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ image: base64, folder: `documents/update-${targetId}` })
+            });
+            const data = await res.json();
+            if (data.url) {
+              finalPageUrls[actualIndex] = data.url;
+            }
+          } catch (e) {
+            console.error(`Failed to upload page ${actualIndex + 1}`, e);
+          } finally {
+            completed++;
+            setUpdateProgress(`Uploading page ${completed} of ${extractedPages.length}...`);
           }
-        } catch (e) {
-          console.error(`Failed to upload page ${index + 1}`, e);
-        } finally {
-          completed++;
-          setUpdateProgress(`Uploading page ${completed} of ${extractedPages.length}...`);
-        }
-      });
-      await Promise.all(uploadPromises);
+        }));
+      }
       setUpdateProgress('Saving changes...');
 
       const patchRes = await fetch(`/api/documents/${targetId}`, {
