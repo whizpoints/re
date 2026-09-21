@@ -94,20 +94,26 @@ export default function AdminDashboard() {
       const finalPageUrls: string[] = new Array(extractedPages.length);
       let completed = 0;
 
-      const uploadPromises = extractedPages.map(async (pageStr, index) => {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ image: pageStr, folder: `documents/update-${targetId}` })
-        });
-        if (!res.ok) throw new Error('Failed to upload a page');
-        const data = await res.json();
-        finalPageUrls[index] = data.url;
+            // Upload sequentially to avoid network bottleneck and ensure UI updates
+      for (let index = 0; index < extractedPages.length; index++) {
+        const base64 = extractedPages[index];
+        setUpdateProgress(`Uploading page ${index + 1} of ${extractedPages.length}...`);
+        
+        try {
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' , 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ image: base64, folder: `documents/update-${targetId}` })
+          });
+          const data = await res.json();
+          if (data.url) {
+            finalPageUrls[index] = data.url;
+          }
+        } catch (e) {
+          console.error(`Failed to upload page ${index + 1}`, e);
+        }
         completed++;
-        setUpdateProgress(`Uploading page ${completed}/${extractedPages.length}...`);
-      });
-
-      await Promise.all(uploadPromises);
+      }
       setUpdateProgress('Saving changes...');
 
       const patchRes = await fetch(`/api/documents/${targetId}`, {

@@ -95,7 +95,7 @@ export default function FlipbookViewer({ doc }: { doc: any }) {
                 className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${currentPage === i ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-lg' : 'border-transparent hover:border-slate-600'}`}
               >
                 {doc.pages?.[i] ? (
-                  <img src={doc.pages[i]} alt={`Thumbnail ${i+1}`} className="w-full h-auto object-contain bg-white" draggable={false} />
+                  <img src={doc.pages[i]} alt={`Thumbnail ${i+1}`} className="w-full h-auto object-contain bg-white" draggable={false} onContextMenu={(e) => e.preventDefault()} />
                 ) : (
                   <div className="w-full aspect-[1/1.4] bg-slate-800 flex items-center justify-center text-slate-500 font-bold">{i+1}</div>
                 )}
@@ -146,8 +146,8 @@ export default function FlipbookViewer({ doc }: { doc: any }) {
                   <img 
                     src={doc.pages[i]} 
                     alt={`Page ${i + 1}`} 
-                    className="w-full h-auto bg-white shadow-2xl rounded-sm"
-                    draggable={false}
+                    className="w-full h-auto bg-white shadow-2xl rounded-sm select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()}
+                    draggable={false} onContextMenu={(e) => e.preventDefault()}
                   />
                 ) : (
                   <div className="w-full aspect-[1/1.414] bg-white flex items-center justify-center rounded-sm shadow-2xl">

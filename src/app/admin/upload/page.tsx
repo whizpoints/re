@@ -200,27 +200,27 @@ export default function UploadPage() {
       let completed = 0;
 
       // We do parallel uploads but track progress
-      const uploadPromises = extractedPages.map(async (pageStr, index) => {
-        if (pageStr.startsWith('data:image')) {
+            // Upload sequentially to avoid network bottleneck and ensure UI updates
+      for (let index = 0; index < extractedPages.length; index++) {
+        const base64 = extractedPages[index];
+        setUploadProgressText(`Uploading page ${index + 1} of ${extractedPages.length}...`);
+        setPublishProgress(Math.floor((index / extractedPages.length) * 8));
+        
+        try {
           const res = await fetch('/api/upload', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ image: pageStr, folder: `documents/${slug}` })
+            headers: { 'Content-Type': 'application/json'  },
+            body: JSON.stringify({ image: base64, folder: `documents/${slug}` })
           });
-          
-          if (!res.ok) throw new Error('Failed to upload a page');
           const data = await res.json();
-          finalPageUrls[index] = data.url;
-        } else {
-          finalPageUrls[index] = pageStr;
+          if (data.url) {
+            finalPageUrls[index] = data.url;
+          }
+        } catch (e) {
+          console.error(`Failed to upload page ${index + 1}`, e);
         }
-        
         completed++;
-        setUploadProgressText(`Uploading page ${completed}/${extractedPages.length}...`);
-        setPublishProgress(Math.floor((completed / extractedPages.length) * 8));
-      });
-
-      await Promise.all(uploadPromises);
+      }
 
       setUploadProgressText('Finalizing document...');
 
