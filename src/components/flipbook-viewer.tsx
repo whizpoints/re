@@ -147,7 +147,6 @@ export default function FlipbookViewer({ doc }: { doc: any }) {
                     src={doc.pages[i]} 
                     alt={`Page ${i + 1}`} 
                     className="w-full h-auto bg-white shadow-2xl rounded-sm select-none pointer-events-none" draggable={false} onContextMenu={(e) => e.preventDefault()}
-                    draggable={false} onContextMenu={(e) => e.preventDefault()}
                   />
                 ) : (
                   <div className="w-full aspect-[1/1.414] bg-white flex items-center justify-center rounded-sm shadow-2xl">
