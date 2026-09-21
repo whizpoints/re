@@ -78,7 +78,7 @@ export default function AdminDashboard() {
         setUpdateProgress(`Extracting page ${i} of ${numPages}...`);
         const page = await pdf.getPage(i);
         const unscaledViewport = page.getViewport({ scale: 1.0 });
-        const scale = 1000 / unscaledViewport.width;
+        const scale = 1600 / unscaledViewport.width; // Super crisp 1600px
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
         canvas.width = viewport.width;
         if (context) {
           await page.render({ canvasContext: context, viewport: viewport }).promise;
-          extractedPages.push(canvas.toDataURL('image/jpeg', 0.8));
+          extractedPages.push(canvas.toDataURL('image/jpeg', 0.95));
         }
       }
 

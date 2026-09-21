@@ -105,7 +105,7 @@ export default function UploadPage() {
         
         // Normalize width to 1000px to maintain consistent A4-like sizes and avoid huge payloads
         const unscaledViewport = page.getViewport({ scale: 1.0 });
-        const scale = 1000 / unscaledViewport.width;
+        const scale = 3200 / unscaledViewport.width; // Super crisp 1600px per page
         const viewport = page.getViewport({ scale });
         
         const canvas = document.createElement('canvas');
@@ -129,8 +129,8 @@ export default function UploadPage() {
           rightCanvas.height = height;
           rightCanvas.getContext('2d')?.drawImage(canvas, halfWidth, 0, halfWidth, height, 0, 0, halfWidth, height);
           
-          const leftData = leftCanvas.toDataURL('image/webp', 0.8);
-          const rightData = rightCanvas.toDataURL('image/webp', 0.8);
+          const leftData = leftCanvas.toDataURL('image/jpeg', 0.95);
+          const rightData = rightCanvas.toDataURL('image/jpeg', 0.95);
 
           // Imposition Logic: Reorder booklet spreads into sequential pages
           if (i % 2 === 0) { // Even spread (e.g. index 0 -> Left: N, Right: 1)
