@@ -123,15 +123,12 @@ export default function AdminDashboard() {
       const finalPageUrls: string[] = new Array(extractedPages.length);
       let completed = 0;
 
-            // Upload sequentially to avoid network bottleneck and ensure UI updates
-      for (let index = 0; index < extractedPages.length; index++) {
-        const base64 = extractedPages[index];
-        setUpdateProgress(`Uploading page ${index + 1} of ${extractedPages.length}...`);
-        
+            // Parallel upload for maximum speed with progress tracking
+      const uploadPromises = extractedPages.map(async (base64, index) => {
         try {
           const res = await fetch('/api/upload', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' , 'Authorization': `Bearer ${token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ image: base64, folder: `documents/update-${targetId}` })
           });
           const data = await res.json();
@@ -140,9 +137,12 @@ export default function AdminDashboard() {
           }
         } catch (e) {
           console.error(`Failed to upload page ${index + 1}`, e);
+        } finally {
+          completed++;
+          setUpdateProgress(`Uploading page ${completed} of ${extractedPages.length}...`);
         }
-        completed++;
-      }
+      });
+      await Promise.all(uploadPromises);
       setUpdateProgress('Saving changes...');
 
       const patchRes = await fetch(`/api/documents/${targetId}`, {
