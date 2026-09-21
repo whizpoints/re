@@ -20,7 +20,7 @@ export default function UploadPage() {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [visibility, setVisibility] = useState('Public');
-  const [expiry, setExpiry] = useState('Never');
+  const [expiry, setExpiry] = useState('5 Days');
   const [customExpiryDate, setCustomExpiryDate] = useState('');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [addPdfExt, setAddPdfExt] = useState(false);
@@ -103,8 +103,10 @@ export default function UploadPage() {
         setProgressMsg(`Extracting spread ${i + 1} of ${numPages}...`);
         const page = await pdf.getPage(i + 1);
         
-        // Lower scale to 1.2 to reduce payload size drastically (prevents 413 Payload Too Large)
-        const viewport = page.getViewport({ scale: 1.2 });
+        // Normalize width to 1000px to maintain consistent A4-like sizes and avoid huge payloads
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        const scale = 1000 / unscaledViewport.width;
+        const viewport = page.getViewport({ scale });
         
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
@@ -177,6 +179,22 @@ export default function UploadPage() {
         }
       }
 
+
+      // Compute expiry date
+      let finalExpiryDate = null;
+      if (expiry === 'Customized' && customExpiryDate) {
+        finalExpiryDate = customExpiryDate;
+      } else if (expiry === '5 Days') {
+        const d = new Date(); d.setDate(d.getDate() + 5);
+        finalExpiryDate = d.toISOString();
+      } else if (expiry === '1 Month') {
+        const d = new Date(); d.setMonth(d.getMonth() + 1);
+        finalExpiryDate = d.toISOString();
+      } else if (expiry === '1 Year') {
+        const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+        finalExpiryDate = d.toISOString();
+      }
+
       // Upload Pages individually for accurate progress
       const finalPageUrls: string[] = new Array(extractedPages.length);
       let completed = 0;
@@ -216,7 +234,7 @@ export default function UploadPage() {
           title,
           slug,
           visibility,
-          customExpiryDate: expiry === 'Customized' ? customExpiryDate : null,
+          customExpiryDate: finalExpiryDate,
           logo_url: finalLogoUrl,
           pages: finalPageUrls, // Already uploaded R2 URLs!
         }),
@@ -481,7 +499,7 @@ export default function UploadPage() {
               <h3 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">Auto-Expiry</h3>
               
               <div className="flex flex-wrap gap-4">
-                {['3 Days', '1 Month', '1 Year', 'Never', 'Customized'].map(exp => (
+                {['5 Days', '1 Month', '1 Year', 'Never', 'Customized'].map(exp => (
                   <label key={exp} className="flex items-center gap-2 cursor-pointer">
                     <input 
                       type="radio" 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Shield, User as UserIcon, CheckCircle2, XCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 interface UserData {
   id: string;
@@ -18,6 +19,7 @@ interface UserData {
 export default function UsersAdminPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingPlan, setUpdatingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/users', {
@@ -35,7 +37,33 @@ export default function UsersAdminPage() {
       .finally(() => setLoading(false));
   }, []);
 
+
+  const handlePlanChange = async (userId: string, newPlan: string) => {
+    setUpdatingPlan(userId);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId, plan: newPlan })
+      });
+      if (!res.ok) throw new Error('Failed to update plan');
+      
+      setUsers(users.map(u => u.id === userId ? { ...u, plan: newPlan } : u));
+      toast.success(`User plan updated to ${newPlan}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update user plan');
+    } finally {
+      setUpdatingPlan(null);
+    }
+  };
+
   if (loading) {
+
     return <div className="animate-pulse flex space-x-4"><div className="flex-1 space-y-4 py-1"><div className="h-4 bg-slate-200 rounded w-3/4"></div><div className="space-y-2"><div className="h-4 bg-slate-200 rounded"></div><div className="h-4 bg-slate-200 rounded w-5/6"></div></div></div></div>;
   }
 
@@ -73,9 +101,16 @@ export default function UsersAdminPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {user.plan}
-                    </span>
+                    <select 
+                      value={user.plan}
+                      disabled={updatingPlan === user.id}
+                      onChange={(e) => handlePlanChange(user.id, e.target.value)}
+                      className="bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <option value="FREE">FREE</option>
+                      <option value="BASIC">BASIC</option>
+                      <option value="PRO">PRO</option>
+                    </select>
                   </td>
                   <td className="px-6 py-4">
                     {user.is_email_verified ? (

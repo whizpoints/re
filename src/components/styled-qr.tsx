@@ -25,6 +25,7 @@ export function StyledQR({
     const options: Options = {
       width: width,
       height: width,
+      type: 'svg',
       data: url,
       margin: 10,
       image: logoUrl || '/logo.png',

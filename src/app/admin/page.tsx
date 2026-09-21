@@ -77,7 +77,9 @@ export default function AdminDashboard() {
       for (let i = 1; i <= numPages; i++) {
         setUpdateProgress(`Extracting page ${i} of ${numPages}...`);
         const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.5 });
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        const scale = 1000 / unscaledViewport.width;
+        const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.height = viewport.height;

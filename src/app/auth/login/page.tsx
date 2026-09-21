@@ -102,18 +102,7 @@ export default function AdminLogin() {
               </div>
             </div>
 
-            <div className="flex items-start gap-3 mt-4">
-              <input
-                type="checkbox"
-                id="terms"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-1 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-              />
-              <label htmlFor="terms" className="text-sm text-slate-600 leading-tight">
-                I agree to the <Link href="/terms" className="text-blue-600 hover:underline">Terms of Service</Link> and <Link href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</Link>.
-              </label>
-            </div>
+            
 
             {error && (
               <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg">
@@ -123,8 +112,8 @@ export default function AdminLogin() {
 
             <button
               type="submit"
-              disabled={loading || !agreed}
-              className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              disabled={loading}
+              className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-colors flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
             >
               {loading ? (
                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -144,15 +133,7 @@ export default function AdminLogin() {
 
           <a
             href="/api/auth/google"
-            onClick={(e) => {
-              if (!agreed) {
-                e.preventDefault();
-                setError('Please agree to the Terms of Service and Privacy Policy before continuing.');
-              }
-            }}
-            className={`w-full h-12 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium transition-colors flex items-center justify-center gap-3 shadow-sm ${
-              !agreed ? 'opacity-50 cursor-not-allowed hover:bg-white' : 'hover:bg-slate-50'
-            }`}
+            className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-colors flex items-center justify-center gap-3 shadow-sm"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
