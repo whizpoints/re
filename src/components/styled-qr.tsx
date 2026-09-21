@@ -23,9 +23,9 @@ export function StyledQR({
 
   useEffect(() => {
     const options: Options = {
-      width: width,
-      height: width,
-      type: 'svg',
+      width: 2000,
+      height: 2000,
+      type: 'canvas',
       data: url,
       margin: 10,
       image: logoUrl || '/logo.png',
@@ -61,5 +61,5 @@ export function StyledQR({
     }
   }, [url, logoUrl, width, dotsType, cornersType, color]);
 
-  return <div ref={ref} className="overflow-hidden rounded-xl bg-white shadow-xl flex items-center justify-center p-2" />;
+  return <div ref={ref} className="overflow-hidden rounded-xl bg-white shadow-xl flex items-center justify-center p-2 [&>canvas]:w-full [&>canvas]:max-w-[300px] [&>canvas]:h-auto" />;
 }

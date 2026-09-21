@@ -104,16 +104,13 @@ export function QRGeneratorModal({ url, onClose, documentTitle }: QRGeneratorMod
   };
 
   const downloadQR = () => {
-    const svg = document.querySelector('.qr-container svg') as SVGSVGElement;
-    if (svg) {
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
+    const canvas = document.querySelector('.qr-container canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const url = canvas.toDataURL('image/png', 1.0);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `QR-${documentTitle.replace(/\s+/g, '-')}.svg`;
+      a.download = `QR-${documentTitle.replace(/\s+/g, '-')}-HQ.png`;
       a.click();
-      URL.revokeObjectURL(url);
     }
   };
 
