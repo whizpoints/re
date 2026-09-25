@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
+    useEffect(() => {
     setIsClient(true);
     if (pathname !== '/auth/login') {
       const token = localStorage.getItem('auth_token');
@@ -24,8 +24,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           if (payload.email === 'admin@whizpoint.app') {
             setIsAdmin(true);
           }
+          
+          // Verify token validity with backend to catch old or expired tokens
+          fetch('/api/user/profile', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }).then(res => {
+            if (res.status === 401 || res.status === 403) {
+              localStorage.removeItem('auth_token');
+              router.push('/auth/login');
+            }
+          }).catch(console.error);
+          
         } catch (e) {
           console.error(e);
+          localStorage.removeItem('auth_token');
+          router.push('/auth/login');
         }
       }
     }
