@@ -1,0 +1,45 @@
+const fs = require('fs');
+
+let layoutContent = fs.readFileSync('src/app/admin/layout.tsx', 'utf-8');
+
+const regex = /useEffect\(\(\) => \{[\s\S]*?\}, \[pathname, router\]\);/;
+
+const newUseEffect = `  useEffect(() => {
+    setIsClient(true);
+    if (pathname !== '/auth/login') {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        router.push('/auth/login');
+      } else {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.email === 'admin@whizpoint.app') {
+            setIsAdmin(true);
+          }
+          
+          // Verify token validity with backend to catch old or expired tokens
+          fetch('/api/user/profile', {
+            headers: { 'Authorization': \`Bearer \${token}\` }
+          }).then(res => {
+            if (res.status === 401 || res.status === 403) {
+              localStorage.removeItem('auth_token');
+              router.push('/auth/login');
+            }
+          }).catch(console.error);
+          
+        } catch (e) {
+          console.error(e);
+          localStorage.removeItem('auth_token');
+          router.push('/auth/login');
+        }
+      }
+    }
+  }, [pathname, router]);`;
+
+if (layoutContent.match(regex)) {
+  layoutContent = layoutContent.replace(regex, newUseEffect);
+  fs.writeFileSync('src/app/admin/layout.tsx', layoutContent);
+  console.log("Successfully patched");
+} else {
+  console.log("Failed to match regex");
+}
