@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import prisma from '@/lib/db';
 import { sendVerificationEmail } from '@/lib/email';
+import { getRequestBaseUrl } from '@/lib/url';
 
 export async function POST(req: Request) {
   try {
@@ -33,12 +34,12 @@ export async function POST(req: Request) {
       },
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
+    const baseUrl = getRequestBaseUrl(req);
     const verifyLink = `${baseUrl}/auth/verify?token=${verification_token}`;
     
     // Await email dispatch so serverless execution context does not terminate before SMTP completes
     try {
-      await sendVerificationEmail(email, name, verifyLink);
+      await sendVerificationEmail(email, name, verifyLink, baseUrl);
     } catch (emailError) {
       console.error('[SIGNUP] Error sending verification email:', emailError);
     }

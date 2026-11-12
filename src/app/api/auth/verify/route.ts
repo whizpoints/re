@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { sendWelcomeEmail } from '@/lib/email';
+import { getRequestBaseUrl } from '@/lib/url';
 
 export async function POST(req: Request) {
   try {
@@ -28,7 +29,8 @@ export async function POST(req: Request) {
 
     // Send Welcome email once user is successfully verified
     try {
-      await sendWelcomeEmail(user.email, user.name);
+      const baseUrl = getRequestBaseUrl(req);
+      await sendWelcomeEmail(user.email, user.name, baseUrl);
     } catch (welcomeError) {
       console.error('[VERIFY] Error sending welcome email:', welcomeError);
     }

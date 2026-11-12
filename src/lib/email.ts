@@ -16,8 +16,8 @@ const getFromAddress = () => {
   return `"${name}" <${email}>`;
 };
 
-const getAppUrl = () => {
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
+const getAppUrl = (overrideUrl?: string) => {
+  return overrideUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
 };
 
 const LOGO_URL = 'https://www.whizpoint.app/_next/image?url=%2Ficon.png&w=1920&q=75';
@@ -27,12 +27,15 @@ export function renderEmailWrapper({
   title,
   preheader,
   contentHtml,
+  baseUrl,
 }: {
   title: string;
   preheader?: string;
   contentHtml: string;
+  baseUrl?: string;
 }) {
-  const appUrl = getAppUrl();
+  const appUrl = getAppUrl(baseUrl);
+  const cleanDomain = appUrl.replace(/^https?:\/\//, '');
   const year = new Date().getFullYear();
 
   return `<!DOCTYPE html>
@@ -158,7 +161,7 @@ export function renderEmailWrapper({
               Whizpoint Flipbook
             </div>
             <div style="color: #bfdbfe; font-size: 13px; font-weight: 500; margin-top: 4px;">
-              Interactive Digital Publications &bull; e.whizpoint.app
+              Interactive Digital Publications &bull; ${cleanDomain}
             </div>
           </td>
         </tr>
@@ -229,7 +232,12 @@ async function sendEmailSafely(mailOptions: nodemailer.SendMailOptions) {
 // ----------------------------------------------------------------------
 // 1. Email Verification
 // ----------------------------------------------------------------------
-export const sendVerificationEmail = async (to: string, name: string, verifyLink: string) => {
+export const sendVerificationEmail = async (
+  to: string,
+  name: string,
+  verifyLink: string,
+  baseUrl?: string
+) => {
   const contentHtml = `
     <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 22px; font-weight: 700;">
       Verify Your Email Address ✉️
@@ -266,6 +274,7 @@ export const sendVerificationEmail = async (to: string, name: string, verifyLink
       title: 'Verify your email - Whizpoint Flipbook',
       preheader: 'Please verify your email address to get started with Whizpoint Flipbook.',
       contentHtml,
+      baseUrl,
     }),
   });
 };
@@ -273,8 +282,8 @@ export const sendVerificationEmail = async (to: string, name: string, verifyLink
 // ----------------------------------------------------------------------
 // 2. Welcome Email
 // ----------------------------------------------------------------------
-export const sendWelcomeEmail = async (to: string, name: string) => {
-  const appUrl = getAppUrl();
+export const sendWelcomeEmail = async (to: string, name: string, baseUrl?: string) => {
+  const appUrl = getAppUrl(baseUrl);
   const contentHtml = `
     <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 22px; font-weight: 700;">
       Welcome to Whizpoint Flipbook! 🎉
@@ -289,13 +298,13 @@ export const sendWelcomeEmail = async (to: string, name: string) => {
       <ul style="margin: 0; padding-left: 20px; color: #334155; font-size: 14px; line-height: 1.8;">
         <li><strong>A3 Booklet Spread Splitting:</strong> Upload your print-ready A3 sheets; our system automatically formats them into sequential A4 flip pages.</li>
         <li><strong>A4 Direct Documents:</strong> Upload standard A4 reports, magazines, and portfolios with 1:1 page rendering.</li>
-        <li><strong>Compact QR Codes:</strong> Every document gets a tiny, scan-ready QR code powered by <code>${appUrl.replace('https://', '')}</code>.</li>
+        <li><strong>Compact QR Codes:</strong> Every document gets a tiny, scan-ready QR code powered by <code>${appUrl.replace(/^https?:\/\//, '')}</code>.</li>
         <li><strong>Zero-Distraction Light Mode:</strong> Crystal-clear, responsive reader that looks stunning on phones, tablets, and desktops.</li>
       </ul>
     </div>
 
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${appUrl}/admin" class="btn-primary" target="_blank">
+      <a href="${appUrl}/dashboard" class="btn-primary" target="_blank">
         Launch Your Dashboard &rarr;
       </a>
     </div>
@@ -313,6 +322,7 @@ export const sendWelcomeEmail = async (to: string, name: string) => {
       title: 'Welcome to Whizpoint Flipbook',
       preheader: 'Your account is ready! Start publishing interactive digital flipbooks.',
       contentHtml,
+      baseUrl,
     }),
   });
 };
@@ -320,7 +330,7 @@ export const sendWelcomeEmail = async (to: string, name: string) => {
 // ----------------------------------------------------------------------
 // 3. Password Reset Email
 // ----------------------------------------------------------------------
-export const sendPasswordResetEmail = async (to: string, resetLink: string) => {
+export const sendPasswordResetEmail = async (to: string, resetLink: string, baseUrl?: string) => {
   const contentHtml = `
     <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 22px; font-weight: 700;">
       Password Reset Request 🔑
@@ -358,6 +368,7 @@ export const sendPasswordResetEmail = async (to: string, resetLink: string) => {
       title: 'Password Reset - Whizpoint Flipbook',
       preheader: 'Follow the link to reset your Whizpoint Flipbook password.',
       contentHtml,
+      baseUrl,
     }),
   });
 };
@@ -372,6 +383,7 @@ export const sendDocumentPublishedEmail = async ({
   slug,
   pageCount,
   isBooklet,
+  baseUrl,
 }: {
   to: string;
   name: string;
@@ -379,8 +391,9 @@ export const sendDocumentPublishedEmail = async ({
   slug: string;
   pageCount: number;
   isBooklet?: boolean;
+  baseUrl?: string;
 }) => {
-  const appUrl = getAppUrl();
+  const appUrl = getAppUrl(baseUrl);
   const publicUrl = `${appUrl}/${slug}`;
   const qrUrl = `${appUrl}/admin/documents`;
 
@@ -444,6 +457,7 @@ export const sendDocumentPublishedEmail = async ({
       title: `${title} is now live on Whizpoint Flipbook`,
       preheader: `Your publication "${title}" (${pageCount} pages) is ready to share.`,
       contentHtml,
+      baseUrl,
     }),
   });
 };
@@ -456,13 +470,15 @@ export const sendDocumentUploadFailedEmail = async ({
   name,
   title,
   error,
+  baseUrl,
 }: {
   to: string;
   name: string;
   title: string;
   error?: string;
+  baseUrl?: string;
 }) => {
-  const appUrl = getAppUrl();
+  const appUrl = getAppUrl(baseUrl);
   const uploadUrl = `${appUrl}/admin/upload`;
 
   const contentHtml = `
@@ -512,6 +528,7 @@ export const sendDocumentUploadFailedEmail = async ({
       title: `Upload issue with ${title} - Whizpoint Flipbook`,
       preheader: `We encountered an issue processing "${title}". Here are quick steps to resolve it.`,
       contentHtml,
+      baseUrl,
     }),
   });
 };
@@ -525,14 +542,16 @@ export const sendViewMilestoneEmail = async ({
   title,
   slug,
   views,
+  baseUrl,
 }: {
   to: string;
   name: string;
   title: string;
   slug: string;
   views: number;
+  baseUrl?: string;
 }) => {
-  const appUrl = getAppUrl();
+  const appUrl = getAppUrl(baseUrl);
   const publicUrl = `${appUrl}/${slug}`;
 
   const contentHtml = `
@@ -559,7 +578,7 @@ export const sendViewMilestoneEmail = async ({
       <a href="${publicUrl}" class="btn-primary" target="_blank" style="margin-right: 12px;">
         View Your Publication &rarr;
       </a>
-      <a href="${appUrl}/admin" style="display: inline-block; padding: 14px 24px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600; font-size: 14px; color: #334155; text-decoration: none;">
+      <a href="${appUrl}/dashboard" style="display: inline-block; padding: 14px 24px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600; font-size: 14px; color: #334155; text-decoration: none;">
         Go to Dashboard
       </a>
     </div>
@@ -577,6 +596,7 @@ export const sendViewMilestoneEmail = async ({
       title: `${views} views on ${title} - Whizpoint Flipbook`,
       preheader: `Congratulations! "${title}" just reached ${views.toLocaleString()} views on Whizpoint Flipbook.`,
       contentHtml,
+      baseUrl,
     }),
   });
 };
@@ -589,16 +609,19 @@ export const sendCustomHtmlEmail = async ({
   subject,
   html,
   wrapInBrandedTemplate = true,
+  baseUrl,
 }: {
   to: string;
   subject: string;
   html: string;
   wrapInBrandedTemplate?: boolean;
+  baseUrl?: string;
 }) => {
   const finalHtml = wrapInBrandedTemplate
     ? renderEmailWrapper({
         title: subject,
         contentHtml: html,
+        baseUrl,
       })
     : html;
 

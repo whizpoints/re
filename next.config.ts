@@ -10,6 +10,18 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
+  async rewrites() {
+    return [
+      {
+        source: '/dashboard',
+        destination: '/admin',
+      },
+      {
+        source: '/dashboard/:path*',
+        destination: '/admin/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

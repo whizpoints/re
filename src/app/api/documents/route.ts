@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
 import { sendDocumentPublishedEmail, sendDocumentUploadFailedEmail } from '@/lib/email';
+import { getRequestBaseUrl } from '@/lib/url';
 
 export async function GET(req: Request) {
   try {
@@ -104,6 +105,7 @@ export async function POST(req: Request) {
 
     // Send publication confirmation & marketing email to author
     try {
+      const baseUrl = getRequestBaseUrl(req);
       await sendDocumentPublishedEmail({
         to: dbUser.email,
         name: dbUser.name,
@@ -111,6 +113,7 @@ export async function POST(req: Request) {
         slug: document.slug,
         pageCount: document.page_count,
         isBooklet: body.format === 'a3-booklet' || docPages.length >= 4,
+        baseUrl,
       });
     } catch (emailErr) {
       console.error('[DOCUMENTS API] Failed to send publication email:', emailErr);

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import prisma from '@/lib/db';
 import { sendPasswordResetEmail } from '@/lib/email';
+import { getRequestBaseUrl } from '@/lib/url';
 
 export async function POST(req: Request) {
   try {
@@ -32,11 +33,11 @@ export async function POST(req: Request) {
       },
     });
 
-    // Determine base URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
+    // Determine base URL dynamically (supports tunnel, localhost, prod)
+    const baseUrl = getRequestBaseUrl(req);
     const resetLink = `${baseUrl}/auth/reset-password?token=${resetToken}`;
 
-    await sendPasswordResetEmail(user.email, resetLink);
+    await sendPasswordResetEmail(user.email, resetLink, baseUrl);
 
     return NextResponse.json({ message: 'If an account exists, a reset link has been sent.' }, { status: 200 });
   } catch (error) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import prisma from '@/lib/db';
 import { sendVerificationEmail } from '@/lib/email';
+import { getRequestBaseUrl } from '@/lib/url';
 
 export async function POST(req: Request) {
   try {
@@ -33,9 +34,10 @@ export async function POST(req: Request) {
       },
     });
 
-    // Send email
-    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app'}/auth/verify?token=${token}`;
-    await sendVerificationEmail(email, user.name, verificationUrl);
+    // Send email using dynamic request URL (supports Cloudflare tunnel, localhost, and prod)
+    const baseUrl = getRequestBaseUrl(req);
+    const verificationUrl = `${baseUrl}/auth/verify?token=${token}`;
+    await sendVerificationEmail(email, user.name, verificationUrl, baseUrl);
 
     return NextResponse.json({ message: 'Verification email sent successfully' }, { status: 200 });
   } catch (error) {

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { QRGeneratorModal } from '@/components/qr-generator-modal';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { toast } from 'react-hot-toast';
 import { processPdf } from '@/lib/pdf-processor';
 
@@ -20,6 +21,7 @@ export default function AdminDocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
   const [qrDoc, setQrDoc] = useState<Document | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [updateProgress, setUpdateProgress] = useState('');
@@ -166,8 +168,9 @@ export default function AdminDocumentsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
+  const confirmDelete = async () => {
+    if (!docToDelete) return;
+    const id = docToDelete.id;
     
     setDeleting(id);
     try {
@@ -178,13 +181,14 @@ export default function AdminDocumentsPage() {
       });
       if (res.ok) {
         setDocuments(docs => docs.filter(d => d.id !== id));
-        toast.success('Document deleted');
+        toast.success(`"${docToDelete.title}" deleted successfully`);
+        setDocToDelete(null);
       } else {
         toast.error('Failed to delete document');
       }
     } catch (error) {
       console.error('Delete error', error);
-      toast.error('An error occurred');
+      toast.error('An unexpected error occurred while deleting');
     } finally {
       setDeleting(null);
     }
@@ -383,7 +387,7 @@ export default function AdminDocumentsPage() {
                             </svg>
                           </Link>
                           <button 
-                            onClick={() => handleDelete(doc.id)}
+                            onClick={() => setDocToDelete(doc)}
                             disabled={deleting === doc.id}
                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" 
                             title="Delete"
@@ -447,6 +451,19 @@ export default function AdminDocumentsPage() {
           url={typeof window !== 'undefined' ? `${window.location.origin}/${qrDoc.slug}` : `${process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app'}/${qrDoc.slug}`}
           documentTitle={qrDoc.title}
           onClose={() => setQrDoc(null)}
+        />
+      )}
+
+      {docToDelete && (
+        <ConfirmModal
+          isOpen={!!docToDelete}
+          onClose={() => setDocToDelete(null)}
+          onConfirm={confirmDelete}
+          title="Delete Publication?"
+          description={`Are you sure you want to permanently delete "${docToDelete.title}"? The public link and its QR code will no longer be accessible.`}
+          confirmText="Yes, Delete Publication"
+          isDestructive={true}
+          isLoading={!!deleting}
         />
       )}
     </div>
