@@ -1,10 +1,10 @@
 import FlipbookViewer from '@/components/flipbook-viewer';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-
 import prisma from '@/lib/db';
+import { sendViewMilestoneEmail } from '@/lib/email';
 
-// Fetch document from database
+// Read-only fetch for metadata generation
 async function getDocument(slug: string) {
   try {
     const document = await prisma.document.findUnique({
@@ -18,13 +18,50 @@ async function getDocument(slug: string) {
       id: document.id,
       title: document.title,
       slug: document.slug,
-      pageCount: document.page_count,
+      pageCount: document.pages && document.pages.length > 0 ? document.pages.length : document.page_count,
       pages: document.pages,
-      logoUrl: document.logo_url
+      logoUrl: document.logo_url,
+      views: document.views || 0,
     };
   } catch (error) {
     console.error('Error fetching document:', error);
     return null;
+  }
+}
+
+// Atomically record view and trigger milestone emails
+async function recordViewAndGetDocument(slug: string) {
+  try {
+    const document = await prisma.document.update({
+      where: { slug },
+      data: { views: { increment: 1 } },
+      include: { user: true },
+    });
+
+    // Milestone thresholds to notify author
+    const MILESTONES = [25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+    if (MILESTONES.includes(document.views) && document.user?.email) {
+      sendViewMilestoneEmail({
+        to: document.user.email,
+        name: document.user.name,
+        title: document.title,
+        slug: document.slug,
+        views: document.views,
+      }).catch((err) => console.error('[MILESTONE EMAIL ERROR]:', err));
+    }
+
+    return {
+      id: document.id,
+      title: document.title,
+      slug: document.slug,
+      pageCount: document.pages && document.pages.length > 0 ? document.pages.length : document.page_count,
+      pages: document.pages,
+      logoUrl: document.logo_url,
+      views: document.views,
+    };
+  } catch (error) {
+    console.error('Error recording view on document:', error);
+    return getDocument(slug);
   }
 }
 
@@ -34,7 +71,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   if (!doc) return { title: 'Not Found | Whizpoint Flipbook' };
   
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://api.whizpoint.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
   const docUrl = `${baseUrl}/${doc.slug}`;
   const ogImage = (doc.pages && doc.pages.length > 0) ? doc.pages[0] : `${baseUrl}/og.jpg`;
   const description = `Read ${doc.title} on Whizpoint Flipbook. Swipe or scroll to explore this ${doc.pageCount}-page interactive digital document.`;
@@ -73,13 +110,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ViewerPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  
 
-
-  const doc = await getDocument(slug);
+  const doc = await recordViewAndGetDocument(slug);
   if (!doc) notFound();
   
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://api.whizpoint.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Book",

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     });
 
     // Send email
-    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://api.whizpoint.app'}/auth/verify?token=${token}`;
+    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app'}/auth/verify?token=${token}`;
     await sendVerificationEmail(email, user.name, verificationUrl);
 
     return NextResponse.json({ message: 'Verification email sent successfully' }, { status: 200 });

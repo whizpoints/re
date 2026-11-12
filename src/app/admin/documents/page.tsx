@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { QRGeneratorModal } from '@/components/qr-generator-modal';
 import { toast } from 'react-hot-toast';
+import { processPdf } from '@/lib/pdf-processor';
 
 interface Document {
   id: string;
@@ -94,71 +95,69 @@ export default function AdminDocumentsPage() {
     const targetId = updateTargetRef.current;
     if (!file || !targetId) return;
     
-    if (file.type !== 'application/pdf') {
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
       toast.error('Please select a PDF file.');
       return;
     }
 
     setUpdating(targetId);
-    setUpdateProgress('Extracting PDF pages...');
+    setUpdateProgress('Analyzing PDF & extracting pages...');
 
     try {
-      const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-      
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      const numPages = pdf.numPages;
-      const extractedPages: string[] = [];
+      const result = await processPdf(file, {
+        format: 'auto',
+        onProgress: (msg) => setUpdateProgress(msg),
+      });
 
-      for (let i = 1; i <= numPages; i++) {
-        setUpdateProgress(`Extracting page ${i} of ${numPages}...`);
-        const page = await pdf.getPage(i);
-        const unscaledViewport = page.getViewport({ scale: 1.0 });
-        const scale = 1000 / unscaledViewport.width;
-        const viewport = page.getViewport({ scale });
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        if (context) {
-          await page.render({ canvasContext: context, viewport: viewport }).promise;
-          extractedPages.push(canvas.toDataURL('image/jpeg', 0.8));
-        }
-      }
-
+      const extractedPages = result.pages;
       const token = localStorage.getItem('auth_token');
       const finalPageUrls: string[] = new Array(extractedPages.length);
       let completed = 0;
 
-      const uploadPromises = extractedPages.map(async (pageStr, index) => {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ image: pageStr, folder: `documents/update-${targetId}` })
-        });
-        if (!res.ok) throw new Error('Failed to upload a page');
-        const data = await res.json();
-        finalPageUrls[index] = data.url;
-        completed++;
-        setUpdateProgress(`Uploading page ${completed}/${extractedPages.length}...`);
-      });
-
-      await Promise.all(uploadPromises);
+      const concurrency = 3;
+      for (let i = 0; i < extractedPages.length; i += concurrency) {
+        const batch = extractedPages.slice(i, i + concurrency);
+        
+        await Promise.all(batch.map(async (base64, batchIndex) => {
+          const actualIndex = i + batchIndex;
+          try {
+            const res = await fetch('/api/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ image: base64, folder: `documents/update-${targetId}` })
+            });
+            const data = await res.json();
+            if (data.url) {
+              finalPageUrls[actualIndex] = data.url;
+            }
+          } catch (e) {
+            console.error(`Failed to upload page ${actualIndex + 1}`, e);
+          } finally {
+            completed++;
+            setUpdateProgress(`Uploading page ${completed} of ${extractedPages.length}...`);
+          }
+        }));
+      }
       setUpdateProgress('Saving changes...');
+
+      const cleanUrls = finalPageUrls.filter(Boolean);
 
       const patchRes = await fetch(`/api/documents/${targetId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ pages: finalPageUrls, page_count: numPages })
+        body: JSON.stringify({ pages: cleanUrls, page_count: cleanUrls.length })
       });
       if (!patchRes.ok) throw new Error('Failed to update document');
 
-      toast.success('Document updated successfully!');
+      toast.success(
+        result.detectedFormat === 'a3-booklet'
+          ? `Updated successfully with ${cleanUrls.length} pages (A3 Booklet spread format)!`
+          : `Updated successfully with ${cleanUrls.length} pages (Standard A4 format)!`
+      );
       fetchDocuments();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Failed to update document.');
+      toast.error(err.message || 'Failed to update document.');
     } finally {
       setUpdating(null);
       setUpdateProgress('');
@@ -211,16 +210,30 @@ export default function AdminDocumentsPage() {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-        <Link
-          href="/admin/upload"
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-sm"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Upload Document
-        </Link>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">All Documents (Admin Master)</h1>
+          <p className="text-sm text-slate-500 mt-1">Administrative oversight across all platform publications and users.</p>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/admin/upload?type=a3"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Upload A3 Booklet
+          </Link>
+          <Link
+            href="/admin/upload?type=a4"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm rounded-xl border border-slate-300 transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Upload A4 (1:1)
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -431,7 +444,7 @@ export default function AdminDocumentsPage() {
 
       {qrDoc && (
         <QRGeneratorModal
-          url={typeof window !== 'undefined' ? `${window.location.origin}/${qrDoc.slug}` : `${process.env.NEXT_PUBLIC_APP_URL || 'https://api.whizpoint.app'}/${qrDoc.slug}`}
+          url={typeof window !== 'undefined' ? `${window.location.origin}/${qrDoc.slug}` : `${process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app'}/${qrDoc.slug}`}
           documentTitle={qrDoc.title}
           onClose={() => setQrDoc(null)}
         />

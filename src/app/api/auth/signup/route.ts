@@ -33,9 +33,15 @@ export async function POST(req: Request) {
       },
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://api.whizpoint.app';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
     const verifyLink = `${baseUrl}/auth/verify?token=${verification_token}`;
-    sendVerificationEmail(email, name, verifyLink).catch(console.error);
+    
+    // Await email dispatch so serverless execution context does not terminate before SMTP completes
+    try {
+      await sendVerificationEmail(email, name, verifyLink);
+    } catch (emailError) {
+      console.error('[SIGNUP] Error sending verification email:', emailError);
+    }
 
     return NextResponse.json(
       { message: 'User created successfully. Please check your email to verify your account.' },

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Menu, X, ArrowDown, Hand } from 'lucide-react';
 
 export default function FlipbookViewer({ doc }: { doc: any }) {
+  const totalPages = Math.max(doc?.pages?.length || 0, doc?.pageCount || 0);
   const [currentPage, setCurrentPage] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -63,7 +64,7 @@ export default function FlipbookViewer({ doc }: { doc: any }) {
     pages.forEach((el) => observer.observe(el));
     
     return () => observer.disconnect();
-  }, [doc.pages, doc.pageCount]);
+  }, [doc.pages, totalPages]);
 
   const scrollToPage = (index: number) => {
     setCurrentPage(index);
@@ -88,7 +89,7 @@ export default function FlipbookViewer({ doc }: { doc: any }) {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar min-w-[16rem]">
-            {Array.from({ length: doc.pageCount }).map((_, i) => (
+            {Array.from({ length: totalPages }).map((_, i) => (
               <div 
                 key={i} 
                 onClick={() => scrollToPage(i)}
@@ -135,7 +136,7 @@ export default function FlipbookViewer({ doc }: { doc: any }) {
               paddingRight: isMobile ? '0.5rem' : '2rem',
             }}
           >
-            {Array.from({ length: doc.pageCount }).map((_, i) => (
+            {Array.from({ length: totalPages }).map((_, i) => (
               <div 
                 key={i}
                 id={`page-${i}`}
@@ -166,7 +167,7 @@ export default function FlipbookViewer({ doc }: { doc: any }) {
         {/* Mobile Page Indicator (Floating at bottom) */}
         {isMobile && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 bg-slate-800/90 backdrop-blur-sm px-5 py-2.5 rounded-full text-white text-sm font-medium shadow-lg border border-slate-700 transition-opacity">
-            {currentPage + 1} / {doc.pageCount}
+            {currentPage + 1} / {totalPages}
           </div>
         )}
       </div>

@@ -30,6 +30,7 @@ model Document {
   title              String
   slug               String    @unique
   page_count         Int
+  views              Int       @default(0)
   pages              String[]  // Array of image URLs in R2
   logo_url           String?   // Custom Favicon/Logo URL in R2
   visibility         String    @default("Public") // Public, Pinned, Unlisted

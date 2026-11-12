@@ -21,7 +21,7 @@ export function DocumentCard({
   isPinned,
 }: DocumentCardProps) {
   const formattedDate = new Date(createdAt).toLocaleDateString();
-  const docUrl = typeof window !== 'undefined' ? `${window.location.origin}/${slug}` : `${process.env.NEXT_PUBLIC_APP_URL || 'https://api.whizpoint.app'}/${slug}`;
+  const docUrl = typeof window !== 'undefined' ? `${window.location.origin}/${slug}` : `${process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app'}/${slug}`;
 
   return (
     <div className="group relative rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-lg transition-all duration-300 block flex flex-col">

@@ -16,14 +16,14 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Whizpoint Flipbook | Digital Document Platform',
   description: 'Transform your print-ready PDFs into beautiful, ultra-modern, interactive digital flipbooks instantly. Host, share, and track your documents securely with Whizpoint.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://api.whizpoint.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: 'Whizpoint Flipbook | Digital Document Platform',
     description: 'Transform your print-ready PDFs into beautiful, ultra-modern, interactive digital flipbooks instantly. Host, share, and track your documents securely with Whizpoint.',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://api.whizpoint.app',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app',
     siteName: 'Whizpoint Flipbook',
     images: [
       {

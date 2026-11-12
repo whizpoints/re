@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
+import { sendDocumentPublishedEmail, sendDocumentUploadFailedEmail } from '@/lib/email';
 
 export async function GET(req: Request) {
   try {
@@ -101,9 +102,23 @@ export async function POST(req: Request) {
       },
     });
 
+    // Send publication confirmation & marketing email to author
+    try {
+      await sendDocumentPublishedEmail({
+        to: dbUser.email,
+        name: dbUser.name,
+        title: document.title,
+        slug: document.slug,
+        pageCount: document.page_count,
+        isBooklet: body.format === 'a3-booklet' || docPages.length >= 4,
+      });
+    } catch (emailErr) {
+      console.error('[DOCUMENTS API] Failed to send publication email:', emailErr);
+    }
+
     return NextResponse.json({ message: 'Document created successfully', document }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating document:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
   }
 }

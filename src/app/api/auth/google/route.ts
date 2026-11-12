@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://api.whizpoint.app';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
   const redirectUri = `${appUrl}/api/auth/callback/google`;
 
   const params = new URLSearchParams({

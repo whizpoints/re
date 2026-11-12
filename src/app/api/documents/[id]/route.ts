@@ -61,9 +61,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // Update document
     const updatedDocument = await prisma.document.update({
       where: { id },
-            data: {
-        ...(body.pages && { pages: body.pages }),
-        ...(body.page_count !== undefined && { page_count: body.page_count }),
+      data: {
+        ...(body.pages && { 
+          pages: body.pages,
+          page_count: Array.isArray(body.pages) ? body.pages.length : (body.page_count ?? document.page_count)
+        }),
+        ...(body.page_count !== undefined && !body.pages && { page_count: body.page_count }),
         ...(body.title && { title: body.title }),
         ...(body.slug && { slug: body.slug }), // Added slug update
         ...(body.visibility && { visibility: body.visibility }),

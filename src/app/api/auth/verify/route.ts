@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { sendWelcomeEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
   try {
@@ -24,6 +25,13 @@ export async function POST(req: Request) {
         verification_token: null,
       },
     });
+
+    // Send Welcome email once user is successfully verified
+    try {
+      await sendWelcomeEmail(user.email, user.name);
+    } catch (welcomeError) {
+      console.error('[VERIFY] Error sending welcome email:', welcomeError);
+    }
 
     return NextResponse.json({ message: 'Email verified successfully' }, { status: 200 });
   } catch (error) {

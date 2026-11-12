@@ -32,13 +32,8 @@ export async function POST(req: Request) {
       },
     });
 
-    // Determine base URL (in a real app you might pass this from the frontend or have it in env)
-    const host = req.headers.get('host') || 'localhost:3000';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    // Use api.whizpoint.app if localhost as per user rules, but for now we'll dynamically use request host
-    // Actually, rule says: "Use this domain whenever connecting to outside APIs or generating webhook endpoints... and in all commands having localhost where an external URL is needed."
-    const baseUrl = host.includes('localhost') ? 'https://api.whizpoint.app' : `${protocol}://${host}`;
-    
+    // Determine base URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
     const resetLink = `${baseUrl}/auth/reset-password?token=${resetToken}`;
 
     await sendPasswordResetEmail(user.email, resetLink);
