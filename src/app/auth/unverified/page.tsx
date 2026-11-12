@@ -164,7 +164,7 @@ export default function UnverifiedPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans relative overflow-hidden">
       <NavigationHeader showFullNav={false} />
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pt-24 sm:pt-28">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pt-16 sm:pt-20">
         <Suspense
           fallback={
             <div className="w-12 h-12 rounded-2xl bg-white shadow-md flex items-center justify-center">

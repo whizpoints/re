@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans relative overflow-hidden">
       <NavigationHeader showFullNav={false} />
 
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pt-24 sm:pt-28">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pt-16 sm:pt-20">
         <div className="w-full max-w-md relative z-10">
           <div className="bg-white/90 backdrop-blur-2xl border border-white/70 shadow-[0_20px_50px_rgba(0,0,0,0.06)] rounded-3xl p-6 sm:p-8 text-center transition-all duration-300">
             <div className="w-14 h-14 bg-blue-50 rounded-2xl border border-blue-200/70 flex items-center justify-center mx-auto mb-5 text-blue-600 shadow-sm">

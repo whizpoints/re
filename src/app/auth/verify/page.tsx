@@ -242,7 +242,7 @@ export default function VerifyPage() {
       <div className="absolute top-1/4 -right-20 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 -left-20 w-96 h-96 bg-indigo-200/25 rounded-full blur-3xl pointer-events-none" />
 
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pt-24 sm:pt-28">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pt-16 sm:pt-20">
         <Suspense
           fallback={
             <div className="w-16 h-16 rounded-2xl bg-white/70 backdrop-blur-md flex items-center justify-center shadow-lg">
