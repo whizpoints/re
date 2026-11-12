@@ -27,6 +27,7 @@ export function NavigationHeader({ showFullNav = true }: NavigationHeaderProps) 
   const navLinks = [
     { name: 'Features', href: '/#features' },
     { name: 'A3 Booklet & A4', href: '/#formats' },
+    { name: 'Gallery', href: '/gallery' },
     { name: 'Workflow', href: '/#workflow' },
     { name: 'FAQ', href: '/#faq' },
     { name: 'Privacy Policy', href: '/privacy' },
@@ -66,18 +67,25 @@ export function NavigationHeader({ showFullNav = true }: NavigationHeaderProps) 
           {/* Desktop Navigation Links */}
           {showFullNav && (
             <nav className="hidden lg:flex items-center gap-1 bg-slate-100/70 backdrop-blur-md border border-slate-200/50 p-1.5 rounded-full">
-              {navLinks.slice(0, 4).map((link) => (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-blue-600 hover:bg-white/90 transition-all"
-                >
-                  {link.name}
-                </Link>
-              ))}
+              {navLinks.slice(0, 5).map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                      isActive
+                        ? 'bg-white text-blue-600 shadow-xs'
+                        : 'text-slate-600 hover:text-blue-600 hover:bg-white/90'
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
               <Link
                 href="/privacy"
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   pathname === '/privacy' || pathname === '/terms'
                     ? 'bg-white text-blue-600 shadow-xs'
                     : 'text-slate-600 hover:text-blue-600 hover:bg-white/90'
@@ -126,14 +134,18 @@ export function NavigationHeader({ showFullNav = true }: NavigationHeaderProps) 
 
         {/* Hovering Translucent Glassmorphic Dropdown Menu (Mobile) */}
         {mobileMenuOpen && (
-          <div className="sm:hidden absolute top-[calc(100%+8px)] left-3 right-3 bg-white/80 backdrop-blur-2xl border border-white/70 shadow-[0_20px_60px_rgba(0,0,0,0.12)] rounded-3xl p-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className="sm:hidden absolute top-[calc(100%+8px)] left-3 right-3 bg-white/85 backdrop-blur-2xl border border-white/70 shadow-[0_20px_60px_rgba(0,0,0,0.12)] rounded-3xl p-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
             <div className="flex flex-col space-y-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-blue-50/70 hover:text-blue-600 transition-colors"
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                    pathname === link.href
+                      ? 'bg-blue-50 text-blue-600 font-bold'
+                      : 'text-slate-700 hover:bg-slate-100/80 hover:text-blue-600'
+                  }`}
                 >
                   {link.name}
                 </Link>

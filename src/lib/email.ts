@@ -186,8 +186,8 @@ export function renderEmailWrapper({
             </div>
             
             <div style="margin: 12px 0;">
+              <a href="https://wa.me/254754783683" class="contact-badge" style="color:#059669;">💬 WhatsApp +254 754 783 683</a>
               <a href="tel:+254718311345" class="contact-badge" style="color:#1d4ed8;">📞 +254 718 311 345</a>
-              <a href="https://wa.me/254718311345" class="contact-badge" style="color:#059669;">💬 WhatsApp Us</a>
               <a href="mailto:support@whizpoint.app" class="contact-badge" style="color:#2563eb;">✉️ support@whizpoint.app</a>
               <span class="contact-badge" style="color:#475569;">📍 Nairobi, Kenya</span>
             </div>
@@ -310,7 +310,7 @@ export const sendWelcomeEmail = async (to: string, name: string, baseUrl?: strin
     </div>
 
     <p style="margin-top: 24px; color: #475569;">
-      Need any assistance or custom enterprise integrations? Just reply to this email or reach us on WhatsApp at <strong>+254 718 311 345</strong>.
+      Need any assistance or custom enterprise integrations? Just reply to this email or reach us on WhatsApp at <strong>+254 754 783 683</strong> (or call <strong>+254 718 311 345</strong>).
     </p>
   `;
 
@@ -516,7 +516,7 @@ export const sendDocumentUploadFailedEmail = async ({
     </div>
 
     <p style="font-size: 13px; color: #64748b;">
-      Need hands-on help? Contact our technical support team at <a href="mailto:support@whizpoint.app" style="color: #2563eb;">support@whizpoint.app</a> or WhatsApp us at <strong>+254 718 311 345</strong> and we will inspect the document for you.
+      Need hands-on help? Contact our technical support team at <a href="mailto:support@whizpoint.app" style="color: #2563eb;">support@whizpoint.app</a> or WhatsApp us at <strong>+254 754 783 683</strong> (call: <strong>+254 718 311 345</strong>) and we will inspect the document for you.
     </p>
   `;
 

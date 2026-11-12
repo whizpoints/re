@@ -172,7 +172,7 @@ export default function BroadcastPage() {
     </div>
     <div class="footer">
       <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;">Whizpoint Solutions</div>
-      <div>📞 +254 718 311 345 &bull; ✉️ support@whizpoint.app &bull; 📍 Nairobi, Kenya</div>
+      <div>💬 WhatsApp: +254 754 783 683 &bull; 📞 +254 718 311 345 &bull; ✉️ support@whizpoint.app &bull; 📍 Nairobi, Kenya</div>
       <div style="margin-top: 10px; color: #94a3b8;">&copy; ${new Date().getFullYear()} Whizpoint Solutions. All rights reserved.</div>
     </div>
   </div>

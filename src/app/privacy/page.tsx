@@ -297,9 +297,12 @@ export default function PrivacyPage() {
                 <div className="flex items-start gap-3">
                   <Phone className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-slate-900 block">Direct Telephone</span>
-                    <a href="tel:+254718311345" className="text-slate-700 hover:text-blue-600">
-                      +254 718 311 345
+                    <span className="font-bold text-slate-900 block">Phone / WhatsApp</span>
+                    <a href="https://wa.me/254754783683" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold hover:underline block">
+                      +254 754 783 683
+                    </a>
+                    <a href="tel:+254718311345" className="text-slate-500 hover:text-slate-800 text-[11px] block mt-0.5">
+                      Alt: +254 718 311 345
                     </a>
                   </div>
                 </div>

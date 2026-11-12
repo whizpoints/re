@@ -631,8 +631,25 @@ export default function LandingPage() {
                 Industrial-grade client-side WebAssembly rasterization for A3 booklet spreads and single-page A4 publications with vector QR codes and Cloudflare R2 multi-region edge delivery.
               </p>
               <div className="text-xs text-slate-500 pt-1 space-y-1">
-                <div>Nairobi, Kenya &bull; Tel: <a href="tel:+254718311345" className="text-slate-700 font-medium hover:text-blue-600">+254 718 311 345</a></div>
-                <div>Support: <a href="mailto:support@whizpoint.app" className="text-blue-600 hover:underline">support@whizpoint.app</a></div>
+                <div>
+                  Phone / WhatsApp:{' '}
+                  <a href="https://wa.me/254754783683" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold hover:underline">
+                    +254 754 783 683
+                  </a>{' '}
+                  <span className="text-slate-400">&bull;</span>{' '}
+                  <a href="tel:+254718311345" className="text-slate-700 hover:text-blue-600 font-medium">
+                    +254 718 311 345
+                  </a>
+                </div>
+                <div>
+                  Email: <a href="mailto:info@whizpoint.app" className="text-blue-600 hover:underline">info@whizpoint.app</a>
+                  {' '}&bull;{' '}
+                  <a href="mailto:support@whizpoint.app" className="text-blue-600 hover:underline">support@whizpoint.app</a>
+                </div>
+                <div>
+                  Online Portal: <a href="https://www.whizpoint.app/contact" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">whizpoint.app/contact</a>
+                  {' '}&bull; Nairobi, Kenya
+                </div>
               </div>
             </div>
 

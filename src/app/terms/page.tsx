@@ -173,7 +173,7 @@ export default function TermsPage() {
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2">
                 <p className="font-semibold text-slate-900">Designated Copyright Agent Contact:</p>
                 <p>Email: <code>legal@whizpoint.app</code></p>
-                <p>Telephone: +254 718 311 345</p>
+                <p>Telephone / WhatsApp: +254 754 783 683 (Alt: +254 718 311 345)</p>
                 <p>Attn: Legal & Copyright Department, Whizpoint Solutions, Nairobi, Kenya</p>
                 <p className="pt-2 text-slate-600">
                   Any takedown notice must identify the copyrighted work claimed to be infringed, the exact URL slug of the offending publication, and a statement made under penalty of perjury confirming your authorization to act on behalf of the copyright holder.
@@ -266,9 +266,12 @@ export default function TermsPage() {
                 <div className="flex items-start gap-3">
                   <Phone className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-slate-900 block">Telephone Hotline</span>
-                    <a href="tel:+254718311345" className="text-slate-700 hover:text-blue-600">
-                      +254 718 311 345
+                    <span className="font-bold text-slate-900 block">Phone / WhatsApp</span>
+                    <a href="https://wa.me/254754783683" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold hover:underline block">
+                      +254 754 783 683
+                    </a>
+                    <a href="tel:+254718311345" className="text-slate-500 hover:text-slate-800 text-[11px] block mt-0.5">
+                      Alt: +254 718 311 345
                     </a>
                   </div>
                 </div>
