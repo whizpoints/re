@@ -1,7 +1,26 @@
-'use client'
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import {
+  BookOpen,
+  FileText,
+  Layers,
+  Search,
+  Upload,
+  QrCode,
+  Eye,
+  Trash2,
+  RefreshCw,
+  Globe,
+  HardDrive,
+  Sparkles,
+  Clock,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  ExternalLink,
+} from 'lucide-react';
 import { QRGeneratorModal } from '@/components/qr-generator-modal';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { toast } from 'react-hot-toast';
@@ -14,6 +33,7 @@ interface Document {
   visibility: string;
   custom_expiry_date: string | null;
   page_count: number;
+  views?: number;
 }
 
 export default function AdminDashboard() {
@@ -36,7 +56,7 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem('auth_token');
       const res = await fetch('/api/documents', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (res.ok) {
@@ -49,7 +69,6 @@ export default function AdminDashboard() {
     }
   };
 
-
   const handleUpdateClick = (id: string) => {
     updateTargetRef.current = id;
     if (fileInputRef.current) fileInputRef.current.click();
@@ -59,14 +78,14 @@ export default function AdminDashboard() {
     const file = e.target.files?.[0];
     const targetId = updateTargetRef.current;
     if (!file || !targetId) return;
-    
+
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      toast.error('Please select a PDF file.');
+      toast.error('Please select a valid PDF file.');
       return;
     }
 
     setUpdating(targetId);
-    setUpdateProgress('Analyzing PDF & extracting pages...');
+    setUpdateProgress('Analyzing PDF & rasterizing pages...');
 
     try {
       const result = await processPdf(file, {
@@ -77,74 +96,87 @@ export default function AdminDashboard() {
       const extractedPages = result.pages;
       const token = localStorage.getItem('auth_token');
       const finalPageUrls: string[] = new Array(extractedPages.length);
-      let completed = 0;
 
       const concurrency = 3;
       for (let i = 0; i < extractedPages.length; i += concurrency) {
         const batch = extractedPages.slice(i, i + concurrency);
-        
-        await Promise.all(batch.map(async (base64, batchIndex) => {
-          const actualIndex = i + batchIndex;
-          try {
-            const res = await fetch('/api/upload', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-              body: JSON.stringify({ image: base64, folder: `documents/update-${targetId}` })
-            });
-            const data = await res.json();
-            if (data.url) {
-              finalPageUrls[actualIndex] = data.url;
-            }
-          } catch (e) {
-            console.error(`Failed to upload page ${actualIndex + 1}`, e);
-          } finally {
-            completed++;
-            setUpdateProgress(`Uploading page ${completed} of ${extractedPages.length}...`);
-          }
-        }));
-      }
-      setUpdateProgress('Saving changes...');
 
-      const cleanUrls = finalPageUrls.filter(Boolean);
+        await Promise.all(
+          batch.map(async (base64, batchIndex) => {
+            const actualIndex = i + batchIndex;
+            try {
+              const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  image: base64,
+                  folder: `documents/update-${targetId}`,
+                }),
+              });
+              const data = await res.json();
+              if (data.url) {
+                finalPageUrls[actualIndex] = data.url;
+              }
+            } catch (e) {
+              console.error(`Failed to upload page ${actualIndex + 1}`, e);
+            }
+          })
+        );
+      }
+
+      const validUrls = finalPageUrls.filter((url) => !!url);
+      if (validUrls.length === 0) {
+        throw new Error('Failed to upload processed document pages to cloud storage.');
+      }
 
       const patchRes = await fetch(`/api/documents/${targetId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ pages: cleanUrls, page_count: cleanUrls.length })
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          pages: validUrls,
+          page_count: validUrls.length,
+        }),
       });
-      if (!patchRes.ok) throw new Error('Failed to update document');
+
+      if (!patchRes.ok) {
+        const errorData = await patchRes.json();
+        throw new Error(errorData.error || 'Failed to update document metadata');
+      }
 
       toast.success(
-        result.detectedFormat === 'a3-booklet'
-          ? `Updated with ${cleanUrls.length} pages (A3 Booklet spread format)!`
-          : `Updated with ${cleanUrls.length} pages (Standard A4 format)!`
+        `Document updated: ${validUrls.length} pages rasterized. QR codes remain active.`
       );
       fetchDocuments();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || 'Failed to update document.');
+      toast.error(err.message || 'Failed to update document');
     } finally {
       setUpdating(null);
       setUpdateProgress('');
       if (fileInputRef.current) fileInputRef.current.value = '';
-      updateTargetRef.current = null;
     }
   };
 
   const confirmDelete = async () => {
     if (!docToDelete) return;
-    const id = docToDelete.id;
-    
-    setDeleting(id);
+    setDeleting(docToDelete.id);
+
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch(`/api/documents/${id}`, {
+      const res = await fetch(`/api/documents/${docToDelete.id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
+
       if (res.ok) {
-        setDocuments(docs => docs.filter(d => d.id !== id));
-        toast.success(`"${docToDelete.title}" deleted successfully`);
+        setDocuments(documents.filter((doc) => doc.id !== docToDelete.id));
+        toast.success('Document deleted successfully');
         setDocToDelete(null);
       } else {
         toast.error('Failed to delete document');
@@ -157,197 +189,294 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredDocs = documents.filter(doc => 
-    doc.title.toLowerCase().includes(search.toLowerCase()) || 
-    doc.slug.toLowerCase().includes(search.toLowerCase())
+  const filteredDocs = documents.filter(
+    (doc) =>
+      doc.title.toLowerCase().includes(search.toLowerCase()) ||
+      doc.slug.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalDocs = documents.length;
-  const publicDocs = documents.filter(d => d.visibility === 'Public').length;
+  const publicDocs = documents.filter((d) => d.visibility === 'Public').length;
+  const totalViews = documents.reduce((acc, curr) => acc + (curr.views || 0), 0);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
+        <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shadow-sm animate-pulse">
+          <RefreshCw className="w-5 h-5 animate-spin" />
+        </div>
+        <p className="text-xs font-mono text-slate-400">Loading publisher workspace...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      {/* Header */}
+    <div className="space-y-8 animate-in fade-in duration-300">
+      
+      {/* Top Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage, update, and share your interactive flipbook publications.</p>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-[10px] font-mono font-bold tracking-wider uppercase mb-1.5">
+            <Sparkles className="w-3 h-3" />
+            <span>Workspace Edition 2026</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Publisher Studio
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Manage interactive flipbooks, vector QR codes, and real-time readership metrics.
+          </p>
         </div>
+
         <div className="flex items-center gap-2.5">
           <Link
             href="/admin/upload?type=a3"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-colors shadow-sm"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-xs rounded-xl transition-all shadow-md shadow-blue-500/20 group"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Upload A3 Booklet
+            <Layers className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span>Upload A3 Booklet</span>
           </Link>
+
           <Link
             href="/admin/upload?type=a4"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm rounded-xl border border-slate-300 transition-colors shadow-sm"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 transition-all shadow-2xs hover:shadow-xs group"
           >
-            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Upload A4 (1:1)
+            <FileText className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
+            <span>Upload A4 (1:1)</span>
           </Link>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-3 md:gap-6">
-        <div className="bg-white rounded-2xl p-3 md:p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 shrink-0">
-            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+      {/* Glassmorphic Stats Overview */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Card 1: Publications */}
+        <div className="bg-white/85 backdrop-blur-xl rounded-2xl p-4 sm:p-5 border border-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.03)] flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+            <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs md:text-sm font-medium text-slate-500">Docs</p>
-            <p className="text-xl md:text-2xl font-bold text-slate-900">{totalDocs}</p>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-2xl p-3 md:p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600 shrink-0">
-            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-xs md:text-sm font-medium text-slate-500">Public</p>
-            <p className="text-xl md:text-2xl font-bold text-slate-900">{publicDocs}</p>
+            <p className="text-[11px] font-mono font-medium text-slate-400 uppercase tracking-wider">
+              Publications
+            </p>
+            <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{totalDocs}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-3 md:p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-50 rounded-full flex items-center justify-center text-purple-600 shrink-0">
-            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-            </svg>
+        {/* Card 2: Public Portals */}
+        <div className="bg-white/85 backdrop-blur-xl rounded-2xl p-4 sm:p-5 border border-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.03)] flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+            <Globe className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs md:text-sm font-medium text-slate-500">Storage</p>
-            <p className="text-xl md:text-2xl font-bold text-slate-900">{(totalDocs * 2.5).toFixed(1)} MB</p>
+            <p className="text-[11px] font-mono font-medium text-slate-400 uppercase tracking-wider">
+              Public Links
+            </p>
+            <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{publicDocs}</p>
+          </div>
+        </div>
+
+        {/* Card 3: Storage */}
+        <div className="bg-white/85 backdrop-blur-xl rounded-2xl p-4 sm:p-5 border border-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.03)] flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+            <HardDrive className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-mono font-medium text-slate-400 uppercase tracking-wider">
+              Cloudflare R2
+            </p>
+            <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
+              {(totalDocs * 2.5).toFixed(1)} <span className="text-xs font-normal text-slate-500">MB</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Total Readers */}
+        <div className="bg-white/85 backdrop-blur-xl rounded-2xl p-4 sm:p-5 border border-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.03)] flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+            <Eye className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-mono font-medium text-slate-400 uppercase tracking-wider">
+              Total Views
+            </p>
+            <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{totalViews}</p>
           </div>
         </div>
       </div>
 
-      {/* Documents Section */}
+      {/* Publications Table Section */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-xl font-bold text-slate-800">Recent Documents</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Active Publications</h2>
+            <p className="text-xs text-slate-500">Real-time status, page counts, and quick management</p>
+          </div>
+
+          {/* Search Box */}
           <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search documents..."
+              placeholder="Search by title or slug..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full sm:w-64 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+              className="pl-9 pr-4 py-2 w-full sm:w-64 rounded-xl bg-white/90 border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs"
             />
-            <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
           </div>
         </div>
 
-        {/* Table */}
-        <input type="file" accept="application/pdf" className="hidden" ref={fileInputRef} onChange={handleUpdateFile} />
+        {/* Hidden File Input for PDF Updates */}
+        <input
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleUpdateFile}
+        />
+
+        {/* High-tech Updating Modal Overlay */}
         {updating && (
-          <div className="fixed inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-            <svg className="animate-spin h-10 w-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p className="text-lg font-bold text-slate-900">{updateProgress}</p>
+          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex flex-col items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl text-white space-y-4">
+              <div className="relative inline-flex items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                  <RefreshCw className="w-7 h-7 animate-spin" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold">Synchronizing Document</h3>
+              <p className="text-xs font-mono text-slate-400 leading-relaxed">
+                {updateProgress || 'Processing PDF imposition...'}
+              </p>
+              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-blue-500 h-full w-2/3 animate-pulse rounded-full" />
+              </div>
+            </div>
           </div>
         )}
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+
+        {/* Glassmorphic Table Container */}
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl border border-slate-200/80 overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.03)]">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100 text-sm font-semibold text-slate-600 whitespace-nowrap">
-                  <th className="py-4 px-6 font-medium">Document</th>
-                  <th className="py-4 px-6 font-medium">Slug</th>
-                  <th className="py-4 px-6 font-medium">Visibility</th>
-                  <th className="py-4 px-6 font-medium">Expiry</th>
-                  <th className="py-4 px-6 font-medium text-right">Actions</th>
+                <tr className="bg-slate-50/75 border-b border-slate-100 text-[11px] font-mono uppercase tracking-wider text-slate-500 whitespace-nowrap">
+                  <th className="py-3.5 px-5 font-semibold">Publication</th>
+                  <th className="py-3.5 px-4 font-semibold">Public Link</th>
+                  <th className="py-3.5 px-4 font-semibold">Visibility</th>
+                  <th className="py-3.5 px-4 font-semibold">Reads</th>
+                  <th className="py-3.5 px-4 font-semibold">Retention</th>
+                  <th className="py-3.5 px-5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredDocs.length > 0 ? (
                   filteredDocs.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="py-4 px-6 whitespace-nowrap">
+                    <tr key={doc.id} className="hover:bg-blue-50/40 transition-colors group">
+                      {/* Publication Title & Pages */}
+                      <td className="py-3.5 px-5 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-12 rounded shadow-sm flex-shrink-0 bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">
-                            PDF
+                          <div className="w-9 h-11 rounded-lg bg-blue-50 border border-blue-100 flex flex-col items-center justify-center text-blue-700 shrink-0 font-mono text-[9px] font-bold shadow-2xs">
+                            <span>PDF</span>
+                            <span className="text-[8px] text-slate-400 font-normal">{doc.page_count}p</span>
                           </div>
-                          <span className="font-medium text-slate-900">{doc.title}</span>
+                          <div>
+                            <span className="font-bold text-slate-900 block group-hover:text-blue-600 transition-colors">
+                              {doc.title}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              ID: {doc.id.slice(0, 8)}...
+                            </span>
+                          </div>
                         </div>
                       </td>
-                      <td className="py-4 px-6 text-sm text-slate-500 whitespace-nowrap">
-                        <Link href={`/${doc.slug}`} target="_blank" className="hover:text-blue-600 hover:underline">
-                          /{doc.slug}
+
+                      {/* Slug Link */}
+                      <td className="py-3.5 px-4 whitespace-nowrap font-mono text-xs">
+                        <Link
+                          href={`/${doc.slug}`}
+                          target="_blank"
+                          className="inline-flex items-center gap-1 text-slate-600 hover:text-blue-600 hover:underline"
+                        >
+                          <span>/{doc.slug}</span>
+                          <ExternalLink className="w-3 h-3 text-slate-400" />
                         </Link>
                       </td>
-                      <td className="py-4 px-6 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          doc.visibility === 'Public' ? 'bg-green-100 text-green-700' :
-                          doc.visibility === 'Pinned' ? 'bg-blue-100 text-blue-700' :
-                          'bg-slate-100 text-slate-700'
-                        }`}>
+
+                      {/* Visibility Pill */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                            doc.visibility === 'Public'
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              : doc.visibility === 'Pinned'
+                              ? 'bg-blue-50 border-blue-200 text-blue-700'
+                              : 'bg-slate-100 border-slate-200 text-slate-600'
+                          }`}
+                        >
                           {doc.visibility}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-sm text-slate-500 whitespace-nowrap">
-                        {doc.custom_expiry_date ? new Date(doc.custom_expiry_date).toLocaleDateString() : 'Never'}
+
+                      {/* Views Count */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1 font-mono text-slate-700 font-bold">
+                          <Eye className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{doc.views || 0}</span>
+                        </div>
                       </td>
-                      <td className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-100 transition-opacity">
-                                                    <button 
+
+                      {/* Expiration Date */}
+                      <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 font-mono text-[11px]">
+                        {doc.custom_expiry_date ? (
+                          <span className="inline-flex items-center gap-1 text-slate-700">
+                            <Clock className="w-3 h-3 text-amber-500" />
+                            {new Date(doc.custom_expiry_date).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">Persistent</span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Update PDF */}
+                          <button
                             onClick={() => handleUpdateClick(doc.id)}
                             disabled={updating === doc.id || deleting === doc.id}
-                            className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50" 
-                            title="Update PDF File"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50 cursor-pointer"
+                            title="Update PDF Source File"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
+                            <RefreshCw className="w-4 h-4" />
                           </button>
-<button 
+
+                          {/* Generate QR */}
+                          <button
                             onClick={() => setQrDoc(doc)}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
-                            title="Generate QR Code"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                            title="Vector QR Code with Logo"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                            </svg>
+                            <QrCode className="w-4 h-4" />
                           </button>
-                          <Link href={`/${doc.slug}`} target="_blank" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
+
+                          {/* Open Viewer */}
+                          <Link
+                            href={`/${doc.slug}`}
+                            target="_blank"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            title="Open Flipbook Viewer"
+                          >
+                            <Eye className="w-4 h-4" />
                           </Link>
-                          <button 
+
+                          {/* Delete */}
+                          <button
                             onClick={() => setDocToDelete(doc)}
                             disabled={deleting === doc.id}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" 
-                            title="Delete"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
+                            title="Delete Publication"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -355,13 +484,22 @@ export default function AdminDashboard() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-500">
+                    <td colSpan={6} className="py-12 text-center text-slate-500">
                       <div className="flex flex-col items-center justify-center">
-                        <svg className="w-12 h-12 text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p className="text-lg font-medium text-slate-900 mb-1">No documents found</p>
-                        <p className="text-sm">Get started by uploading your first PDF.</p>
+                        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+                          <BookOpen className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-900 mb-1">No publications found</p>
+                        <p className="text-xs text-slate-500 mb-4">
+                          Get started by uploading your first A3 booklet spread or A4 document.
+                        </p>
+                        <Link
+                          href="/admin/upload?type=a3"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold text-xs shadow-sm hover:bg-blue-700 transition-all"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload First Document</span>
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -372,21 +510,27 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Vector QR Code Modal */}
       {qrDoc && (
         <QRGeneratorModal
-          url={typeof window !== 'undefined' ? `${window.location.origin}/${qrDoc.slug}` : `${process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app'}/${qrDoc.slug}`}
+          url={
+            typeof window !== 'undefined'
+              ? `${window.location.origin}/${qrDoc.slug}`
+              : `${process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app'}/${qrDoc.slug}`
+          }
           documentTitle={qrDoc.title}
           onClose={() => setQrDoc(null)}
         />
       )}
 
+      {/* Delete Confirmation Modal */}
       {docToDelete && (
         <ConfirmModal
           isOpen={!!docToDelete}
           onClose={() => setDocToDelete(null)}
           onConfirm={confirmDelete}
           title="Delete Publication?"
-          description={`Are you sure you want to permanently delete "${docToDelete.title}"? The public link and its QR code will no longer be accessible.`}
+          description={`Are you sure you want to permanently delete "${docToDelete.title}"? The public link and its vector QR codes will no longer be accessible.`}
           confirmText="Yes, Delete Publication"
           isDestructive={true}
           isLoading={!!deleting}

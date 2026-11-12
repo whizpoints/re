@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 import prisma from '@/lib/db';
 import { sendWelcomeEmail } from '@/lib/email';
+import { getRequestBaseUrl } from '@/lib/url';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret-for-dev-only');
 
@@ -9,7 +10,19 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
   const error = url.searchParams.get('error');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
+  const stateParam = url.searchParams.get('state');
+
+  let appUrl = getRequestBaseUrl(req);
+  if (stateParam) {
+    try {
+      const decoded = JSON.parse(Buffer.from(stateParam, 'base64').toString('utf8'));
+      if (decoded.baseUrl) {
+        appUrl = decoded.baseUrl;
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   if (error || !code) {
     return NextResponse.redirect(`${appUrl}/auth/login?error=google_denied`);
@@ -77,7 +90,7 @@ export async function GET(req: Request) {
 
       // Send welcome email to new Google user
       try {
-        await sendWelcomeEmail(user.email, user.name);
+        await sendWelcomeEmail(user.email, user.name, appUrl);
       } catch (welcomeError) {
         console.error('[GOOGLE AUTH] Failed to send welcome email:', welcomeError);
       }

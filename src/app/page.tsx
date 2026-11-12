@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { NavigationHeader } from '@/components/navigation-header';
 import {
   BookOpen,
   FileText,
@@ -75,87 +76,8 @@ export default function LandingPage() {
         <div className="absolute bottom-[-10%] right-[15%] w-[650px] h-[650px] rounded-full bg-blue-100/40 blur-[150px]" />
       </div>
 
-      {/* Floating Glassmorphic Header */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'backdrop-blur-xl bg-white/80 border-b border-slate-200/70 shadow-sm py-3.5' 
-          : 'bg-transparent py-5'
-      }`}>
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 text-xl font-bold tracking-tight text-slate-900 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="leading-none font-extrabold text-slate-900">Whizpoint</span>
-              <span className="text-[10px] tracking-wider uppercase font-semibold text-blue-600">Flipbook Studio</span>
-            </div>
-          </Link>
-          
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
-            <a href="#formats" className="hover:text-blue-600 transition-colors">A3 & A4 Formats</a>
-            <a href="#features" className="hover:text-blue-600 transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-blue-600 transition-colors">How It Works</a>
-            <Link href="/gallery" className="hover:text-blue-600 transition-colors">Public Gallery</Link>
-            <a href="#faq" className="hover:text-blue-600 transition-colors">FAQ</a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link 
-              href="/auth/login" 
-              className="text-sm font-semibold text-slate-700 hover:text-blue-600 px-4 py-2 rounded-xl transition-colors hidden sm:block"
-            >
-              Sign In
-            </Link>
-            <Link 
-              href="/admin/upload" 
-              className="backdrop-blur-md bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 flex items-center gap-1.5"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Create Flipbook</span>
-            </Link>
-            
-            <button 
-              className="md:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle Navigation"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {mobileMenuOpen ? (
-                  <>
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </>
-                ) : (
-                  <>
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                  </>
-                )}
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200/80 backdrop-blur-2xl bg-white/95 px-6 py-5 flex flex-col gap-3 shadow-xl">
-            <a href="#formats" onClick={() => setMobileMenuOpen(false)} className="py-2 text-slate-700 font-medium">A3 & A4 Formats</a>
-            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="py-2 text-slate-700 font-medium">Features</a>
-            <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="py-2 text-slate-700 font-medium">How It Works</a>
-            <Link href="/gallery" onClick={() => setMobileMenuOpen(false)} className="py-2 text-slate-700 font-medium">Public Gallery</Link>
-            <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-2 text-slate-700 font-medium">FAQ</a>
-            <div className="h-px bg-slate-200 my-1"></div>
-            <Link href="/auth/login" className="block text-center py-2.5 text-slate-700 font-semibold border border-slate-200 rounded-xl">
-              Sign In
-            </Link>
-            <Link href="/admin/upload" className="block text-center py-2.5 bg-blue-600 text-white font-semibold rounded-xl shadow-md">
-              Start Free Upload
-            </Link>
-          </div>
-        )}
-      </header>
+      {/* Universal Glassmorphic Header */}
+      <NavigationHeader showFullNav={true} />
 
       {/* Hero Section */}
       <section className="relative pt-36 pb-20 md:pt-44 md:pb-28 px-6 z-10">
@@ -687,28 +609,60 @@ export default function LandingPage() {
       </section>
 
       {/* Modern Light-Mode Footer */}
-      <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md relative z-10">
-        <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-              <BookOpen className="w-4 h-4" />
+      <footer className="border-t border-slate-200/80 bg-white/90 backdrop-blur-md relative z-10 pt-12 pb-8">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-slate-100">
+            {/* Column 1: Brand & Bio */}
+            <div className="md:col-span-2 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="https://www.whizpoint.app/_next/image?url=%2Ficon.png&w=1920&q=75"
+                  alt="Whizpoint"
+                  className="h-7 w-auto object-contain"
+                />
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-slate-900 leading-none">Whizpoint Flipbook</span>
+                  <span className="text-[10px] text-blue-600 font-semibold tracking-wider uppercase mt-0.5">
+                    Studio &bull; e.whizpoint.app
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
+                Industrial-grade client-side WebAssembly rasterization for A3 booklet spreads and single-page A4 publications with vector QR codes and Cloudflare R2 multi-region edge delivery.
+              </p>
+              <div className="text-xs text-slate-500 pt-1 space-y-1">
+                <div>Nairobi, Kenya &bull; Tel: <a href="tel:+254718311345" className="text-slate-700 font-medium hover:text-blue-600">+254 718 311 345</a></div>
+                <div>Support: <a href="mailto:support@whizpoint.app" className="text-blue-600 hover:underline">support@whizpoint.app</a></div>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-slate-900 leading-none">Whizpoint Flipbook</span>
-              <span className="text-[10px] text-slate-400 font-medium">Next-Gen Document Publishing</span>
+
+            {/* Column 2: Navigation */}
+            <div>
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">Platform</h4>
+              <ul className="space-y-2 text-xs text-slate-500">
+                <li><a href="#formats" className="hover:text-blue-600 transition-colors">A3 Booklet & A4 Formats</a></li>
+                <li><a href="#features" className="hover:text-blue-600 transition-colors">Imposition Features</a></li>
+                <li><a href="#how-it-works" className="hover:text-blue-600 transition-colors">Workflow & QR Engine</a></li>
+                <li><Link href="/gallery" className="hover:text-blue-600 transition-colors">Public Publications</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 3: Legal & Security */}
+            <div>
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">Legal & Compliance</h4>
+              <ul className="space-y-2 text-xs text-slate-500">
+                <li><Link href="/privacy" className="hover:text-blue-600 transition-colors">Privacy Policy (KDPA &bull; GDPR)</Link></li>
+                <li><Link href="/terms" className="hover:text-blue-600 transition-colors">Terms of Service & SLAs</Link></li>
+                <li><a href="mailto:legal@whizpoint.app" className="hover:text-blue-600 transition-colors">DMCA Takedown Notice</a></li>
+                <li><Link href="/auth/login" className="hover:text-blue-600 transition-colors">Publisher Studio Sign In</Link></li>
+              </ul>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-sm text-slate-500 font-medium">
-            <Link href="/gallery" className="hover:text-blue-600 transition-colors">Public Gallery</Link>
-            <Link href="/privacy" className="hover:text-blue-600 transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-blue-600 transition-colors">Terms of Service</Link>
-            <Link href="/auth/login" className="hover:text-blue-600 transition-colors">Admin Login</Link>
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+            <p>&copy; {new Date().getFullYear()} Whizpoint Solutions. All rights reserved.</p>
+            <p className="font-mono text-[11px]">KDPA 2019 Registered &bull; AES-256 R2 Storage</p>
           </div>
-
-          <p className="text-sm text-slate-400 font-medium">
-            &copy; {new Date().getFullYear()} Whizpoint Solutions. All rights reserved.
-          </p>
         </div>
       </footer>
     </div>

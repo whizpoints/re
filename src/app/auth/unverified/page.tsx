@@ -3,6 +3,8 @@
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Mail, ArrowRight, RotateCw, AlertCircle, ShieldAlert } from 'lucide-react';
+import { NavigationHeader } from '@/components/navigation-header';
 import { toast } from 'react-hot-toast';
 
 function UnverifiedContent() {
@@ -14,11 +16,11 @@ function UnverifiedContent() {
 
   const handleResend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!emailToResend) {
-      toast.error('Please enter an email address');
+    if (!emailToResend || !emailToResend.includes('@')) {
+      toast.error('Please enter a valid email address');
       return;
     }
-    
+
     setLoading(true);
     try {
       const res = await fetch('/api/auth/resend', {
@@ -26,16 +28,16 @@ function UnverifiedContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailToResend }),
       });
-      
+
       if (res.ok) {
-        toast.success('Verification email sent! Check your inbox.');
+        toast.success('Verification email sent to your inbox');
         setShowEdit(false);
       } else {
         const data = await res.json();
-        toast.error(data.error || 'Failed to send email');
+        toast.error(data.error || 'Failed to dispatch verification email');
       }
-    } catch (error) {
-      toast.error('An error occurred while sending the email.');
+    } catch {
+      toast.error('Network error dispatching verification email');
     } finally {
       setLoading(false);
     }
@@ -49,83 +51,108 @@ function UnverifiedContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border border-slate-100 text-center">
-        <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 text-orange-600">
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
+    <div className="w-full max-w-md relative z-10">
+      <div className="bg-white/90 backdrop-blur-2xl border border-white/70 shadow-[0_20px_50px_rgba(0,0,0,0.06)] rounded-3xl p-6 sm:p-8 text-center transition-all duration-300">
+        <div className="w-14 h-14 bg-amber-50 rounded-2xl border border-amber-200/70 flex items-center justify-center mx-auto mb-5 text-amber-600 shadow-sm">
+          <ShieldAlert className="w-7 h-7" />
         </div>
-        
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Verify your account</h2>
-        
+
+        <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight mb-2">
+          Verify Your Account
+        </h2>
+
         {!showEdit ? (
           <>
-            <p className="text-slate-500 mb-6 leading-relaxed">
-              We sent a verification link to <span className="font-semibold text-slate-800">{emailToResend}</span>. Please check your inbox and verify your email to log in.
+            <p className="text-xs sm:text-sm text-slate-500 mb-6 leading-relaxed">
+              A verification link was dispatched to{' '}
+              <span className="font-semibold text-slate-800 font-mono">{emailToResend}</span>.
+              Please verify your email address to access your publishing studio.
             </p>
-            
-            <div className="space-y-3">
-              <a 
+
+            <div className="space-y-2.5">
+              <a
                 href={getEmailProviderLink(emailToResend)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-sm gap-2"
+                className="w-full flex items-center justify-center py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs transition-colors shadow-sm gap-2"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                Open Email App
+                <Mail className="w-4 h-4" />
+                <span>Open Mail Application</span>
               </a>
-              
-              <button 
+
+              <button
+                type="button"
                 onClick={() => handleResend()}
                 disabled={loading}
-                className="w-full py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold text-xs hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                {loading ? 'Sending...' : 'Resend Verification Email'}
+                {loading ? (
+                  <>
+                    <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Dispatching...</span>
+                  </>
+                ) : (
+                  <span>Resend Verification Link</span>
+                )}
               </button>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-100">
-              <p className="text-sm text-slate-500">
-                Wrong email address?{' '}
-                <button onClick={() => setShowEdit(true)} className="text-blue-600 font-semibold hover:underline">
-                  Change Email
-                </button>
-              </p>
+            <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span>Incorrect email?</span>
+              <button
+                type="button"
+                onClick={() => setShowEdit(true)}
+                className="text-blue-600 font-semibold hover:underline cursor-pointer"
+              >
+                Update Email Address
+              </button>
             </div>
           </>
         ) : (
-          <form onSubmit={handleResend} className="text-left mt-6">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Enter correct email</label>
-            <input 
-              type="email" 
-              value={emailToResend} 
-              onChange={(e) => setEmailToResend(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none mb-4"
-              required
-            />
-            <button 
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-sm"
-            >
-              {loading ? 'Sending...' : 'Send Verification Link'}
-            </button>
-            {initialEmail && (
-              <button 
+          <form onSubmit={handleResend} className="text-left space-y-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Enter correct email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="email"
+                  value={emailToResend}
+                  onChange={(e) => setEmailToResend(e.target.value)}
+                  required
+                  placeholder="publisher@whizpoint.app"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
                 type="button"
                 onClick={() => setShowEdit(false)}
-                className="w-full mt-3 py-3 text-slate-500 font-medium hover:bg-slate-50 rounded-xl transition-colors"
+                className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 text-slate-600 font-semibold text-xs hover:bg-slate-50 transition-all cursor-pointer"
               >
                 Cancel
               </button>
-            )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <span>Send Link</span>}
+              </button>
+            </div>
           </form>
         )}
-        
-        <div className="mt-6">
-          <Link href="/auth/login" className="text-sm font-medium text-slate-400 hover:text-slate-600">
-            &larr; Back to Login
+
+        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-4 text-xs">
+          <Link href="/auth/login" className="text-blue-600 hover:underline font-medium">
+            Return to Login
+          </Link>
+          <span className="text-slate-300">&bull;</span>
+          <Link href="/" className="text-slate-500 hover:underline">
+            Home
           </Link>
         </div>
       </div>
@@ -135,8 +162,19 @@ function UnverifiedContent() {
 
 export default function UnverifiedPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50"></div>}>
-      <UnverifiedContent />
-    </Suspense>
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans relative overflow-hidden">
+      <NavigationHeader showFullNav={false} />
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pt-24 sm:pt-28">
+        <Suspense
+          fallback={
+            <div className="w-12 h-12 rounded-2xl bg-white shadow-md flex items-center justify-center">
+              <RotateCw className="w-6 h-6 text-blue-600 animate-spin" />
+            </div>
+          }
+        >
+          <UnverifiedContent />
+        </Suspense>
+      </main>
+    </div>
   );
 }

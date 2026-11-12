@@ -1,12 +1,16 @@
-'use client'
+'use client';
 
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Lock, Eye, EyeOff, ArrowRight, RotateCw, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
+import { NavigationHeader } from '@/components/navigation-header';
+import { toast } from 'react-hot-toast';
 
 function ResetPasswordForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -20,12 +24,12 @@ function ResetPasswordForm() {
       setError('Passwords do not match');
       return;
     }
-    
+
     if (!token) {
       setError('Invalid or missing reset token.');
       return;
     }
-    
+
     setLoading(true);
     setError('');
 
@@ -35,16 +39,17 @@ function ResetPasswordForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, new_password: password }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || 'Failed to reset password');
       }
 
       setSuccess(true);
+      toast.success('Password reset successfully');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'An error occurred.');
     } finally {
       setLoading(false);
     }
@@ -52,109 +57,148 @@ function ResetPasswordForm() {
 
   if (!token && !error && !success) {
     return (
-      <div className="text-center p-6 bg-red-50 text-red-600 rounded-xl">
-        Invalid or missing reset token in the URL.
+      <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs rounded-2xl flex items-start gap-2.5">
+        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+        <span>Invalid or missing reset token in the URL. Please request a new link.</span>
       </div>
     );
   }
 
   return (
     <>
-      <div className="text-center mb-10">
-        <Link href="/" className="inline-flex justify-center items-center gap-2 mb-6 hover:opacity-80 transition-opacity">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md shadow-blue-200">
-            F
-          </div>
-        </Link>
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Create new password</h1>
-        <p className="text-slate-500">
-          Your new password must be different from previously used passwords.
-        </p>
+      <div className="w-14 h-14 bg-blue-50 rounded-2xl border border-blue-200/70 flex items-center justify-center mx-auto mb-5 text-blue-600 shadow-sm">
+        <KeyRound className="w-7 h-7" />
       </div>
 
-      {success ? (
-        <div className="text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-          </div>
-          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-            <p className="text-slate-700 font-medium">Password successfully reset!</p>
-            <p className="text-slate-500 text-sm mt-2">
-              You can now use your new password to log in.
-            </p>
-          </div>
-          <button 
-            onClick={() => router.push('/auth/login')}
-            className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-colors flex items-center justify-center shadow-sm"
-          >
-            Go to Sign In
-          </button>
+      <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">
+        Create New Password
+      </h1>
+      <p className="text-xs sm:text-sm text-slate-500 mb-6 leading-relaxed">
+        Your new password must be at least 6 characters and different from previous passwords.
+      </p>
+
+      {error && (
+        <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5 text-left">
+          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <span>{error}</span>
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              New Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
-              placeholder="••••••••"
-              required
-              minLength={8}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
-              placeholder="••••••••"
-              required
-            />
+      )}
+
+      {success ? (
+        <div className="space-y-4 animate-in fade-in duration-300">
+          <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-800 text-xs text-left flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              Your password has been successfully updated. You can now sign in with your new credentials.
+            </div>
           </div>
 
-          {error && (
-            <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg">
-              {error}
+          <Link
+            href="/auth/login"
+            className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-sm"
+          >
+            <span>Proceed to Sign In</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="text-left space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              New Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Minimum 6 characters"
+                required
+                minLength={6}
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+              >
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
             </div>
-          )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Confirm New Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-type password"
+                required
+                minLength={6}
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+            </div>
+          </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-blue-200"
+            className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <>
+                <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Updating Password...</span>
+              </>
             ) : (
-              'Reset Password'
+              <>
+                <span>Save New Password</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
             )}
           </button>
         </form>
       )}
+
+      <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-4 text-xs font-medium">
+        <Link href="/auth/login" className="text-blue-600 hover:underline">
+          Return to Login
+        </Link>
+        <span className="text-slate-300">&bull;</span>
+        <Link href="/" className="text-slate-500 hover:underline">
+          Home
+        </Link>
+      </div>
     </>
   );
 }
 
-export default function ResetPassword() {
+export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white flex flex-col items-center justify-center p-4 font-sans text-slate-900">
-      <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 sm:p-12 w-full max-w-lg">
-        <Suspense fallback={<div className="text-center text-slate-500 p-8">Loading...</div>}>
-          <ResetPasswordForm />
-        </Suspense>
-      </div>
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans relative overflow-hidden">
+      <NavigationHeader showFullNav={false} />
+
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pt-24 sm:pt-28">
+        <div className="w-full max-w-md relative z-10">
+          <div className="bg-white/90 backdrop-blur-2xl border border-white/70 shadow-[0_20px_50px_rgba(0,0,0,0.06)] rounded-3xl p-6 sm:p-8 text-center transition-all duration-300">
+            <Suspense
+              fallback={
+                <div className="py-12 flex justify-center">
+                  <RotateCw className="w-8 h-8 text-blue-600 animate-spin" />
+                </div>
+              }
+            >
+              <ResetPasswordForm />
+            </Suspense>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

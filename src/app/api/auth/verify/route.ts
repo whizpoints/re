@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
+import { SignJWT } from 'jose';
 import prisma from '@/lib/db';
 import { sendWelcomeEmail } from '@/lib/email';
 import { getRequestBaseUrl } from '@/lib/url';
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret-for-dev-only');
 
 export async function POST(req: Request) {
   try {
@@ -19,7 +22,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid or expired verification link' }, { status: 400 });
     }
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         is_email_verified: true,
@@ -30,12 +33,25 @@ export async function POST(req: Request) {
     // Send Welcome email once user is successfully verified
     try {
       const baseUrl = getRequestBaseUrl(req);
-      await sendWelcomeEmail(user.email, user.name, baseUrl);
+      await sendWelcomeEmail(updatedUser.email, updatedUser.name, baseUrl);
     } catch (welcomeError) {
       console.error('[VERIFY] Error sending welcome email:', welcomeError);
     }
 
-    return NextResponse.json({ message: 'Email verified successfully' }, { status: 200 });
+    // Generate JWT so user is immediately logged in upon email verification
+    const authToken = await new SignJWT({ sub: updatedUser.id, email: updatedUser.email })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('7d')
+      .sign(JWT_SECRET);
+
+    return NextResponse.json(
+      {
+        message: 'Email verified successfully',
+        token: authToken,
+        user: { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email },
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Verify error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
