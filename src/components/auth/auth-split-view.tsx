@@ -13,10 +13,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
-  BookOpen,
   QrCode,
-  Layers,
   Zap,
   RotateCw,
   Check,
@@ -180,14 +177,14 @@ export function AuthSplitView({
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900 relative">
       <NavigationHeader showFullNav={true} />
 
-      {/* Main container with clean top offset and responsive full-screen fit */}
-      <main className="flex-1 flex items-center justify-center px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-4 sm:pb-6">
-        <div className="w-full max-w-6xl xl:max-w-7xl rounded-3xl overflow-hidden border border-slate-200/90 shadow-[0_20px_50px_rgba(0,0,0,0.05)] bg-white grid grid-cols-1 lg:grid-cols-12 min-h-[560px] lg:h-[calc(100vh-100px)] lg:max-h-[760px]">
+      {/* Main Container - Centered and 100% single-screen fit without scrolling */}
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-4 sm:pb-6">
+        <div className="w-full max-w-md lg:max-w-6xl xl:max-w-7xl lg:grid lg:grid-cols-12 lg:h-[calc(100vh-95px)] lg:max-h-[760px] lg:min-h-[580px] rounded-3xl lg:border lg:border-slate-200/90 lg:shadow-[0_20px_50px_rgba(0,0,0,0.06)] bg-white overflow-hidden">
           
           {/* ========================================================= */}
-          {/* LEFT SIDEBAR: BRIGHT LIGHT-THEME RETRO SHOWCASE           */}
+          {/* LEFT SIDEBAR: DESKTOP ONLY (HIDDEN ON MOBILE)             */}
           {/* ========================================================= */}
-          <div className="lg:col-span-6 bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 text-slate-800 p-5 sm:p-7 lg:p-8 flex flex-col justify-between relative overflow-hidden select-none border-b lg:border-b-0 lg:border-r border-slate-200/80">
+          <div className="hidden lg:flex lg:col-span-6 bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 text-slate-800 p-6 xl:p-8 flex-col justify-between relative overflow-hidden select-none border-r border-slate-200/80">
             {/* Crisp Light Blueprint Grid Background */}
             <div
               className="absolute inset-0 opacity-40 pointer-events-none"
@@ -339,36 +336,36 @@ export function AuthSplitView({
           </div>
 
           {/* ========================================================= */}
-          {/* RIGHT PANEL: BALANCED EYE-LEVEL AUTH FORM (1-SCREEN FIT)  */}
+          {/* RIGHT PANEL / MOBILE STANDALONE GLASSMORPHIC AUTH CARD    */}
           {/* ========================================================= */}
-          <div className="lg:col-span-6 bg-white flex flex-col justify-center p-5 sm:p-7 lg:p-8 xl:p-10 relative overflow-y-auto">
-            <div className="max-w-md w-full mx-auto my-auto">
+          <div className="w-full lg:col-span-6 bg-white/90 lg:bg-white backdrop-blur-2xl lg:backdrop-blur-none border border-white/80 lg:border-none shadow-[0_20px_50px_rgba(0,0,0,0.06)] lg:shadow-none rounded-3xl lg:rounded-none flex flex-col justify-center p-6 sm:p-8 lg:p-8 xl:p-10 relative">
+            <div className="w-full max-w-sm sm:max-w-md mx-auto">
               
-              {/* Compact Brand Header */}
-              <div className="flex items-center justify-between mb-3.5">
-                <Link href="/" className="inline-flex items-center gap-2 group">
-                  <div className="p-1 bg-slate-50 rounded-xl border border-slate-200 group-hover:scale-105 transition-transform duration-200">
-                    <img src={LOGO_URL} alt="Whizpoint" className="h-6 w-auto object-contain" />
+              {/* Brand Header */}
+              <div className="flex items-center justify-between mb-4">
+                <Link href="/" className="inline-flex items-center gap-2.5 group">
+                  <div className="p-1.5 bg-slate-50 rounded-xl border border-slate-200 group-hover:scale-105 transition-transform duration-200">
+                    <img src={LOGO_URL} alt="Whizpoint" className="h-6 sm:h-7 w-auto object-contain" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-extrabold text-slate-900 leading-none">Whizpoint</span>
+                    <span className="text-sm sm:text-base font-extrabold text-slate-900 leading-none">Whizpoint</span>
                     <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mt-0.5">Flipbook Studio</span>
                   </div>
                 </Link>
 
-                <div className="font-mono text-[10px] font-semibold text-slate-400">
+                <div className="font-mono text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200/60">
                   {mode === 'login' ? 'Secure Auth' : 'Free Tier'}
                 </div>
               </div>
 
-              {/* Smooth Animated Tab Switcher Pill */}
-              <div className="relative p-1 bg-slate-100 rounded-2xl flex items-center mb-3.5 border border-slate-200/80">
+              {/* Mode Switcher Pill */}
+              <div className="p-1 bg-slate-100 rounded-2xl flex items-center mb-4 border border-slate-200/80">
                 <button
                   type="button"
                   onClick={() => switchMode('login')}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all duration-200 cursor-pointer ${
+                  className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer ${
                     mode === 'login'
-                      ? 'bg-white text-slate-900 shadow-sm'
+                      ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-500 hover:text-slate-900'
                   }`}
                 >
@@ -377,9 +374,9 @@ export function AuthSplitView({
                 <button
                   type="button"
                   onClick={() => switchMode('signup')}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all duration-200 cursor-pointer ${
+                  className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer ${
                     mode === 'signup'
-                      ? 'bg-white text-slate-900 shadow-sm'
+                      ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-500 hover:text-slate-900'
                   }`}
                 >
@@ -389,7 +386,7 @@ export function AuthSplitView({
 
               {/* Notification Banner */}
               {notification && (
-                <div className="mb-3 p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs flex items-start gap-2">
+                <div className="mb-3.5 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                   <span className="leading-snug">{notification}</span>
                 </div>
@@ -397,29 +394,29 @@ export function AuthSplitView({
 
               {/* Error Banner */}
               {error && (
-                <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2">
+                <div className="mb-3.5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                   <span className="leading-snug">{error}</span>
                 </div>
               )}
 
               {/* ===================================================== */}
-              {/* SPECIAL CASE: SIGNUP PENDING EMAIL VERIFICATION VIEW  */}
+              {/* SIGNUP PENDING EMAIL VERIFICATION VIEW                */}
               {/* ===================================================== */}
               {signupSuccessEmail ? (
-                <div className="py-2 space-y-4 animate-in fade-in duration-300">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center mx-auto shadow-2xs">
-                    <Mail className="w-6 h-6" />
+                <div className="py-3 space-y-4 animate-in fade-in duration-300">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center mx-auto shadow-2xs">
+                    <Mail className="w-7 h-7" />
                   </div>
 
                   <div className="text-center">
-                    <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                    <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
                       Check Your Inbox
                     </h3>
                     <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                       We dispatched a verification link to:
                     </p>
-                    <div className="mt-1.5 inline-block px-3 py-1 bg-slate-100 rounded-lg font-mono text-xs font-semibold text-slate-800 border border-slate-200">
+                    <div className="mt-2 inline-block px-3.5 py-1 bg-slate-100 rounded-lg font-mono text-xs font-semibold text-slate-800 border border-slate-200">
                       {signupSuccessEmail}
                     </div>
                     <p className="text-xs text-slate-500 mt-2.5 leading-relaxed">
@@ -427,18 +424,18 @@ export function AuthSplitView({
                     </p>
                   </div>
 
-                  <div className="pt-1 space-y-2">
+                  <div className="pt-2 space-y-2.5">
                     <button
                       type="button"
                       onClick={handleResend}
                       disabled={resendCooldown > 0}
-                      className="w-full py-2 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                      className="w-full h-11 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
                       {resendCooldown > 0 ? (
                         <span>Resend available in {resendCooldown}s</span>
                       ) : (
                         <>
-                          <RotateCw className="w-3.5 h-3.5" />
+                          <RotateCw className="w-4 h-4" />
                           <span>Resend Verification Link</span>
                         </>
                       )}
@@ -447,10 +444,10 @@ export function AuthSplitView({
                     <button
                       type="button"
                       onClick={() => switchMode('login')}
-                      className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full h-11 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <span>Proceed to Sign In</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -459,7 +456,7 @@ export function AuthSplitView({
                   {/* Google Single Sign-On Button */}
                   <a
                     href="/api/auth/google"
-                    className="w-full flex items-center justify-center gap-2.5 py-2 px-3.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-all shadow-2xs hover:shadow-xs group cursor-pointer mb-3"
+                    className="w-full h-11 sm:h-12 flex items-center justify-center gap-3 px-4 rounded-xl bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-all shadow-2xs hover:shadow-xs group cursor-pointer mb-3.5"
                   >
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                       <path
@@ -483,11 +480,11 @@ export function AuthSplitView({
                   </a>
 
                   {/* Clean Divider */}
-                  <div className="relative flex items-center justify-center mb-3">
+                  <div className="relative flex items-center justify-center mb-3.5">
                     <div className="absolute inset-0 flex items-center">
                       <div className="w-full border-t border-slate-200" />
                     </div>
-                    <span className="relative px-2.5 bg-white text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                    <span className="relative px-3 bg-white text-[10px] font-mono text-slate-400 uppercase tracking-wider">
                       Or with email
                     </span>
                   </div>
@@ -496,52 +493,52 @@ export function AuthSplitView({
                   {/* LOGIN FORM                                        */}
                   {/* ================================================= */}
                   {mode === 'login' ? (
-                    <form onSubmit={handleLoginSubmit} className="space-y-3">
+                    <form onSubmit={handleLoginSubmit} className="space-y-3.5">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
                           Work Email
                         </label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="publisher@whizpoint.app"
                             required
-                            className="w-full pl-9 pr-3 py-2 bg-slate-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full h-11 sm:h-12 pl-10 pr-4 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-xs font-semibold text-slate-700">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-bold text-slate-700">
                             Password
                           </label>
                           <Link
                             href="/auth/forgot-password"
-                            className="text-[11px] font-medium text-blue-600 hover:underline"
+                            className="text-xs font-semibold text-blue-600 hover:underline"
                           >
                             Forgot password?
                           </Link>
                         </div>
                         <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Enter password"
                             required
-                            className="w-full pl-9 pr-9 py-2 bg-slate-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full h-11 sm:h-12 pl-10 pr-10 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                           >
-                            {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
                       </div>
@@ -549,17 +546,17 @@ export function AuthSplitView({
                       <button
                         type="submit"
                         disabled={loading}
-                        className="w-full mt-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer group"
+                        className="w-full h-11 sm:h-12 mt-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer group"
                       >
                         {loading ? (
                           <>
-                            <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                            <RotateCw className="w-4 h-4 animate-spin" />
                             <span>Authenticating Session...</span>
                           </>
                         ) : (
                           <>
                             <span>Sign In to Studio</span>
-                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                           </>
                         )}
                       </button>
@@ -568,49 +565,49 @@ export function AuthSplitView({
                     /* ================================================= */
                     /* SIGNUP FORM WITH CONFIRM PASSWORD & CONFIRM BUTTON */
                     /* ================================================= */
-                    <form onSubmit={handleSignupSubmit} className="space-y-2.5">
+                    <form onSubmit={handleSignupSubmit} className="space-y-3">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-0.5">
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
                           Full Name or Organization
                         </label>
                         <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="John Doe / Creative Agency"
                             required
-                            className="w-full pl-9 pr-3 py-1.5 sm:py-2 bg-slate-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full h-10 sm:h-11 pl-10 pr-4 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-0.5">
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
                           Work Email
                         </label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="publisher@whizpoint.app"
                             required
-                            className="w-full pl-9 pr-3 py-1.5 sm:py-2 bg-slate-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full h-10 sm:h-11 pl-10 pr-4 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                           />
                         </div>
                       </div>
 
                       {/* Password & Confirm Password Side-by-Side Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-0.5">
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
                             Password
                           </label>
                           <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                               type={showPassword ? 'text' : 'password'}
                               value={password}
@@ -618,12 +615,12 @@ export function AuthSplitView({
                               placeholder="Min 6 chars"
                               required
                               minLength={6}
-                              className="w-full pl-9 pr-8 py-1.5 sm:py-2 bg-slate-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                              className="w-full h-10 sm:h-11 pl-10 pr-9 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                             >
                               {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
@@ -631,18 +628,18 @@ export function AuthSplitView({
                         </div>
 
                         <div>
-                          <div className="flex items-center justify-between mb-0.5">
-                            <label className="block text-xs font-semibold text-slate-700">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-xs font-bold text-slate-700">
                               Confirm Password
                             </label>
                             {passwordsMatch && (
-                              <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
+                              <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
                                 <Check className="w-3 h-3" /> Match
                               </span>
                             )}
                           </div>
                           <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                               type={showConfirmPassword ? 'text' : 'password'}
                               value={confirmPassword}
@@ -650,7 +647,7 @@ export function AuthSplitView({
                               placeholder="Re-type password"
                               required
                               minLength={6}
-                              className={`w-full pl-9 pr-8 py-1.5 sm:py-2 bg-slate-50/70 border rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${
+                              className={`w-full h-10 sm:h-11 pl-10 pr-9 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${
                                 confirmPassword.length > 0 && !passwordsMatch
                                   ? 'border-amber-400 focus:border-amber-400'
                                   : 'border-slate-200 focus:border-blue-500'
@@ -659,7 +656,7 @@ export function AuthSplitView({
                             <button
                               type="button"
                               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                             >
                               {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
@@ -693,18 +690,18 @@ export function AuthSplitView({
                       <button
                         type="submit"
                         disabled={loading}
-                        className="w-full mt-1.5 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer group"
+                        className="w-full h-11 sm:h-12 mt-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer group"
                       >
                         {loading ? (
                           <>
-                            <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                            <RotateCw className="w-4 h-4 animate-spin" />
                             <span>Confirming & Creating Account...</span>
                           </>
                         ) : (
                           <>
                             <Check className="w-4 h-4" />
                             <span>Confirm & Create Account</span>
-                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                           </>
                         )}
                       </button>
@@ -714,7 +711,7 @@ export function AuthSplitView({
               )}
 
               {/* Bottom Micro Footer */}
-              <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
                 <span>Kenya Data Protection &bull; GDPR Ready</span>
                 <Link href="/privacy" className="hover:text-slate-600 underline">
                   Legal Compliance
