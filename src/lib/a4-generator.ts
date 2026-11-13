@@ -16,10 +16,10 @@ export interface A4PosterData {
   sunsetDate?: string;  // Resting
   bottomNote?: string;
   // Sizing & Positioning Controls
-  titleFontSize?: number; // 48 - 110 (default 76)
-  qrSize?: number;        // 500 - 1050 (default 780)
-  qrCardOffsetY?: number; // -200 to +200 (default 0)
-  photoSize?: number;     // 240 - 650 (default 480)
+  titleFontSize?: number; // 48 - 110 (default 80)
+  qrSize?: number;        // 800 - 1650 (default 1350 without photo, 1100 with photo)
+  qrCardOffsetY?: number; // -250 to +250 (default 0)
+  photoSize?: number;     // 240 - 650 (default 460)
   showBadge?: boolean;
   showPhoto?: boolean;
   showSunriseSunset?: boolean;
@@ -27,12 +27,14 @@ export interface A4PosterData {
   // Photo
   photoUrl?: string | null;
   photoShape?: 'circle' | 'arch' | 'rounded' | 'none';
-  // Custom Background
+  // Custom Background & Transparency
   customBgUrl?: string | null;
+  customBgOpacity?: number; // 0.1 to 1.0 (default 0.6)
   // QR image data url
   qrDataUrl: string;
-  // Hosting notice
+  // Hosting notice (mandated for non-pro)
   showHostingNotice?: boolean;
+  isProUser?: boolean;
 }
 
 // 300 DPI A4 Dimensions (210mm x 297mm @ 300 DPI)
@@ -40,7 +42,7 @@ export const A4_WIDTH = 2480;
 export const A4_HEIGHT = 3508;
 
 /**
- * Renders the entire A4 poster onto a 2480x3508 canvas at 300 DPI
+ * Renders the entire A4 poster onto a 2480x3508 canvas at 300 DPI with balanced proportions
  */
 export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCanvasElement> {
   const canvas = document.createElement('canvas');
@@ -51,36 +53,40 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
 
   const { template } = data;
 
-  // 1. Draw Background
+  // 1. Draw Base Template Gradient
+  drawFallbackGradient(ctx, template.bgGradient);
+
+  // 2. Draw Custom Background Image with Adjustable Transparency (Blending with Gradient)
   if (data.customBgUrl) {
     try {
       const customImg = await loadImage(data.customBgUrl);
+      ctx.save();
+      ctx.globalAlpha = typeof data.customBgOpacity === 'number' ? data.customBgOpacity : 0.6;
       ctx.drawImage(customImg, 0, 0, A4_WIDTH, A4_HEIGHT);
-    } catch {
-      drawFallbackGradient(ctx, template.bgGradient);
+      ctx.restore();
+    } catch (e) {
+      console.warn('Failed to draw custom background image:', e);
     }
-  } else {
-    drawFallbackGradient(ctx, template.bgGradient);
   }
 
-  // Draw decorative frame / border
+  // Draw decorative outer frame
   drawDecorativeFrame(ctx, template);
 
-  let currentY = 140;
+  let currentY = 120;
 
-  // 2. Draw Top Badge (if enabled)
+  // 3. Draw Top Badge (if enabled)
   const badgeText = (data.badgeText || template.badgeText || '').toUpperCase();
   if (data.showBadge !== false && badgeText) {
     drawPillBadge(ctx, badgeText, template.accentColor, template.textColor, currentY);
-    currentY += 160;
+    currentY += 150;
   } else {
-    currentY += 80;
+    currentY += 60;
   }
 
-  // 3. Draw Header Titles
+  // 4. Draw Header Titles
   const mainTitle = data.customTitle || template.defaultTitle;
   const subtitle = data.customSubtitle || template.defaultSubtitle;
-  const titleSize = data.titleFontSize || 76;
+  const titleSize = data.titleFontSize || 82;
 
   // Main Title
   ctx.save();
@@ -90,12 +96,12 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
     ? `bold ${titleSize}px "Times New Roman", Georgia, serif`
     : `bold ${titleSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
 
-  wrapText(ctx, mainTitle, A4_WIDTH / 2, currentY, A4_WIDTH - 360, titleSize * 1.25);
-  currentY += titleSize * 1.4;
+  wrapText(ctx, mainTitle, A4_WIDTH / 2, currentY, A4_WIDTH - 380, titleSize * 1.25);
+  currentY += titleSize * 1.35;
 
   // Person Name (if memorial / wedding / spotlight)
   if (data.personName && data.personName.trim()) {
-    const nameSize = Math.max(68, Math.round(titleSize * 1.15));
+    const nameSize = Math.max(76, Math.round(titleSize * 1.2));
     ctx.font = template.fontFamily === 'serif'
       ? `italic bold ${nameSize}px Georgia, serif`
       : `bold ${nameSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
@@ -106,20 +112,21 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
 
   // Subtitle
   if (subtitle && subtitle.trim()) {
-    ctx.font = '38px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.font = '40px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.fillStyle = template.subtitleColor;
-    wrapText(ctx, subtitle, A4_WIDTH / 2, currentY, A4_WIDTH - 440, 54);
+    wrapText(ctx, subtitle, A4_WIDTH / 2, currentY, A4_WIDTH - 460, 56);
     currentY += 80;
   }
   ctx.restore();
 
-  // 4. Optional Photo / Portrait
-  if (data.showPhoto !== false && data.photoUrl && data.photoShape !== 'none') {
+  // 5. Optional Portrait Photo
+  const hasPhoto = data.showPhoto !== false && Boolean(data.photoUrl) && data.photoShape !== 'none';
+  if (hasPhoto && data.photoUrl) {
     try {
       const photoImg = await loadImage(data.photoUrl);
       const photoSize = data.photoSize || 460;
       const photoX = (A4_WIDTH - photoSize) / 2;
-      const photoY = currentY + 10;
+      const photoY = currentY + 15;
 
       ctx.save();
       ctx.beginPath();
@@ -133,9 +140,9 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
       ctx.closePath();
 
       // Shadow
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
       ctx.shadowBlur = 40;
-      ctx.shadowOffsetY = 15;
+      ctx.shadowOffsetY = 16;
       ctx.fillStyle = '#ffffff';
       ctx.fill();
 
@@ -159,21 +166,25 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
       ctx.stroke();
       ctx.restore();
 
-      currentY += photoSize + 50;
+      currentY += photoSize + 60;
     } catch (e) {
       console.warn('Failed to draw portrait photo:', e);
     }
   }
 
-  // 5. Centered QR Card Container
-  const chosenQrSize = data.qrSize || 760;
-  const qrPadding = 130;
-  const qrCardWidth = Math.min(A4_WIDTH - 300, chosenQrSize + qrPadding * 2);
-  const qrCardHeight = chosenQrSize + 280;
+  // 6. Centered Hero QR Card (PROPORTIONALLY LARGE)
+  // Default to large scan-ready size: 1350px when no photo, 1100px when photo exists
+  const defaultCalculatedQrSize = hasPhoto ? 1120 : 1360;
+  const chosenQrSize = data.qrSize || defaultCalculatedQrSize;
+  
+  // Card dimensions: Card fits the QR code with generous clean padding
+  const cardPaddingX = 180;
+  const qrCardWidth = Math.min(A4_WIDTH - 240, chosenQrSize + cardPaddingX * 2);
+  const qrCardHeight = chosenQrSize + 340;
   const qrCardX = (A4_WIDTH - qrCardWidth) / 2;
   
-  // Dynamic Y positioning with offset control
-  const baseCardY = Math.max(currentY + 20, 1150);
+  // Dynamic Y positioning: Starts right below header/photo
+  const baseCardY = hasPhoto ? currentY + 30 : Math.max(currentY + 40, 680);
   const qrCardY = Math.max(300, baseCardY + (data.qrCardOffsetY || 0));
 
   drawQRCard(ctx, qrCardX, qrCardY, qrCardWidth, qrCardHeight, data, template);
@@ -182,16 +193,16 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
   try {
     const qrImg = await loadImage(data.qrDataUrl);
     const qrX = qrCardX + (qrCardWidth - chosenQrSize) / 2;
-    const qrY = qrCardY + 95;
+    const qrY = qrCardY + 110;
     ctx.drawImage(qrImg, qrX, qrY, chosenQrSize, chosenQrSize);
   } catch (err) {
     console.error('Failed to draw QR code image:', err);
   }
 
-  // 6. Draw Bottom Section
-  let bottomY = qrCardY + qrCardHeight + 80;
+  // 7. Bottom Section (Sunrise/Sunset, Quotes & Archival)
+  let bottomY = qrCardY + qrCardHeight + 70;
 
-  // If Memorial Sunrise & Sunset (NO EMOJIS - PURE ELEGANT TYPOGRAPHY)
+  // Sunrise & Sunset (NO EMOJIS — Pure Classic Typography)
   const shouldShowDates = data.showSunriseSunset !== false && (template.category === 'memorial' || template.showSunriseSunset);
   if (shouldShowDates) {
     drawSunriseSunset(ctx, bottomY, data.sunriseDate, data.sunsetDate, template);
@@ -205,14 +216,15 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
     ctx.textAlign = 'center';
     ctx.fillStyle = template.textColor;
     ctx.font = template.fontFamily === 'serif' 
-      ? 'italic 38px Georgia, serif' 
-      : '36px -apple-system, BlinkMacSystemFont, sans-serif';
-    wrapText(ctx, noteText, A4_WIDTH / 2, bottomY, A4_WIDTH - 420, 54);
+      ? 'italic 40px Georgia, serif' 
+      : '38px -apple-system, BlinkMacSystemFont, sans-serif';
+    wrapText(ctx, noteText, A4_WIDTH / 2, bottomY, A4_WIDTH - 400, 56);
     ctx.restore();
   }
 
-  // 7. Whizpoint Archival & Temporary Hosting Notice (NO EMOJIS)
-  if (data.showHostingNotice !== false) {
+  // 8. Whizpoint Archival & Temporary Hosting Notice (Mandatory for Non-Pro)
+  const isNoticeMandatory = !data.isProUser;
+  if (isNoticeMandatory || data.showHostingNotice !== false) {
     drawHostingNotice(ctx, data.slug);
   }
 
@@ -220,7 +232,7 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
 }
 
 // ---------------------------------------------------------------------------
-// HELPER DRAWING FUNCTIONS (NO EMOJIS)
+// DRAWING HELPERS (NO EMOJIS)
 // ---------------------------------------------------------------------------
 
 function drawFallbackGradient(ctx: CanvasRenderingContext2D, bgGradient: string) {
@@ -315,13 +327,13 @@ function drawQRCard(
   ctx.save();
 
   // Drop Shadow
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
-  ctx.shadowBlur = 60;
-  ctx.shadowOffsetY = 24;
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
+  ctx.shadowBlur = 70;
+  ctx.shadowOffsetY = 28;
 
   // Background Card
   ctx.beginPath();
-  drawRoundedRect(ctx, x, y, w, h, 48);
+  drawRoundedRect(ctx, x, y, w, h, 56);
   ctx.fillStyle = template.cardBg || '#ffffff';
   ctx.fill();
 
@@ -331,28 +343,28 @@ function drawQRCard(
   ctx.strokeStyle = template.cardBorder || 'rgba(0, 0, 0, 0.08)';
   ctx.stroke();
 
-  // Card Header Label: (CLEAN TEXT - NO EMOJIS)
-  ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  // Card Header Prompt (NO EMOJIS)
+  ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.fillStyle = template.accentColor;
   ctx.textAlign = 'center';
-  ctx.fillText('POINT CAMERA TO READ INTERACTIVE FLIPBOOK', x + w / 2, y + 64);
+  ctx.fillText('POINT CAMERA TO READ', x + w / 2, y + 74);
 
   // Card Footer URL Pill: e.whizpoint.app/[slug]
-  const pillY = y + h - 110;
-  const pillHeight = 64;
+  const pillY = y + h - 120;
+  const pillHeight = 70;
   const displayUrl = data.url.replace(/^https?:\/\//, '');
 
-  ctx.font = 'bold 32px "SF Mono", Consolas, monospace';
+  ctx.font = 'bold 36px "SF Mono", Consolas, monospace';
   const urlWidth = ctx.measureText(displayUrl).width;
-  const pillWidth = Math.min(w - 120, urlWidth + 80);
+  const pillWidth = Math.min(w - 140, urlWidth + 100);
   const pillX = x + (w - pillWidth) / 2;
 
   ctx.beginPath();
-  drawRoundedRect(ctx, pillX, pillY, pillWidth, pillHeight, 32);
+  drawRoundedRect(ctx, pillX, pillY, pillWidth, pillHeight, 35);
   ctx.fillStyle = 'rgba(15, 23, 42, 0.06)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(15, 23, 42, 0.12)';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
   ctx.fillStyle = '#0f172a';
@@ -375,10 +387,10 @@ function drawSunriseSunset(
 
   ctx.save();
   ctx.textAlign = 'center';
-  ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, Georgia, serif';
+  ctx.font = 'bold 44px -apple-system, BlinkMacSystemFont, Georgia, serif';
   ctx.fillStyle = template?.accentColor || '#d97706';
 
-  // NO EMOJIS — Classic typographic dash
+  // NO EMOJIS — Classic typographic em-dash
   const combined = `${sunriseText}   —   ${sunsetText}`;
   ctx.fillText(combined, A4_WIDTH / 2, y);
   ctx.restore();
@@ -390,8 +402,8 @@ function drawHostingNotice(ctx: CanvasRenderingContext2D, slug: string) {
 
   // Divider line
   ctx.beginPath();
-  ctx.moveTo(320, noticeY - 40);
-  ctx.lineTo(A4_WIDTH - 320, noticeY - 40);
+  ctx.moveTo(300, noticeY - 45);
+  ctx.lineTo(A4_WIDTH - 300, noticeY - 45);
   ctx.strokeStyle = 'rgba(100, 116, 139, 0.35)';
   ctx.lineWidth = 2;
   ctx.stroke();

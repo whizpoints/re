@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -19,19 +19,19 @@ import {
   MessageSquare,
   ZoomIn,
   ZoomOut,
-  Maximize2,
-  ChevronRight,
   Eye,
   Edit3,
   Move,
   Type,
   QrCode,
   Palette,
+  Lock,
 } from 'lucide-react';
 import QRCodeStyling from 'qr-code-styling';
 import { A4_TEMPLATES, A4Template } from '@/lib/templates/a4-templates';
 import {
   A4PosterData,
+  renderA4PosterToCanvas,
   downloadA4PDF,
   downloadA4PNG,
   printA4Poster,
@@ -45,6 +45,7 @@ interface A4PosterStudioProps {
   slug: string;
   url: string;
   initialLogoUrl?: string;
+  isProUser?: boolean;
 }
 
 export function A4PosterStudio({
@@ -54,6 +55,7 @@ export function A4PosterStudio({
   slug,
   url,
   initialLogoUrl,
+  isProUser = false,
 }: A4PosterStudioProps) {
   // Mounting for React Portal
   const [mounted, setMounted] = useState(false);
@@ -61,7 +63,7 @@ export function A4PosterStudio({
     setMounted(true);
   }, []);
 
-  // View Mode: 'view' (full A4 focus) vs 'edit' (split with customizer drawer)
+  // View Mode: 'view' vs 'edit'
   const [isEditMode, setIsEditMode] = useState(true);
   const [mobileTab, setMobileTab] = useState<'canvas' | 'editor'>('canvas');
 
@@ -82,16 +84,16 @@ export function A4PosterStudio({
   const [sunsetDate, setSunsetDate] = useState('08 Nov 2026');
   const [bottomNote, setBottomNote] = useState(A4_TEMPLATES[0].defaultBottomNote);
 
-  // Sizing & Positioning Controls
-  const [titleFontSize, setTitleFontSize] = useState<number>(76);
-  const [qrSize, setQrSize] = useState<number>(760);
+  // Sizing & Positioning Controls (Default Large QR Code: 1360px!)
+  const [titleFontSize, setTitleFontSize] = useState<number>(82);
+  const [qrSize, setQrSize] = useState<number>(1360);
   const [qrCardOffsetY, setQrCardOffsetY] = useState<number>(0);
   const [photoSize, setPhotoSize] = useState<number>(460);
   const [qrLogoSize, setQrLogoSize] = useState<number>(0.38);
 
   // Layout Visibility Toggles
   const [showBadge, setShowBadge] = useState(true);
-  const [showPhoto, setShowPhoto] = useState(true);
+  const [showPhoto, setShowPhoto] = useState(false);
   const [showSunriseSunset, setShowSunriseSunset] = useState(true);
   const [showBottomNote, setShowBottomNote] = useState(true);
   const [showHostingNotice, setShowHostingNotice] = useState(true);
@@ -100,8 +102,9 @@ export function A4PosterStudio({
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoShape, setPhotoShape] = useState<'circle' | 'arch' | 'rounded' | 'none'>('arch');
 
-  // Custom Background
+  // Custom Background & Transparency
   const [customBgUrl, setCustomBgUrl] = useState<string | null>(null);
+  const [customBgOpacity, setCustomBgOpacity] = useState<number>(0.6);
 
   // QR Customization
   const [centerLogoUrl, setCenterLogoUrl] = useState<string | undefined>(initialLogoUrl || '/logo.png');
@@ -109,28 +112,32 @@ export function A4PosterStudio({
   const [qrCornersType, setQrCornersType] = useState<'extra-rounded' | 'square' | 'dot'>('extra-rounded');
   const [customQrColor, setCustomQrColor] = useState<string>(A4_TEMPLATES[0].qrColor);
 
-  // Canvas Zoom / Scale in Viewport
-  const [canvasZoom, setCanvasZoom] = useState<number>(1);
+  // Canvas Zoom: Defaults directly to 70% as requested by the user
+  const [canvasZoom, setCanvasZoom] = useState<number>(0.7);
 
-  // Export Loading States
+  // Loading states
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isExportingPNG, setIsExportingPNG] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isRenderingPreview, setIsRenderingPreview] = useState(false);
 
-  // QR Code Generation
+  // Offscreen QR Generator
   const qrRef = useRef<HTMLDivElement>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
-  // Re-generate QR Code whenever relevant settings change
+  // Live Canvas Viewport Ref (Guarantees 100% WYSIWYG match to PDF)
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Generate QR Code data URL when relevant settings change
   useEffect(() => {
     if (!isOpen) return;
 
     const qr = new QRCodeStyling({
-      width: 1400,
-      height: 1400,
+      width: 1500,
+      height: 1500,
       type: 'canvas',
       data: url,
-      margin: 14,
+      margin: 16,
       image: centerLogoUrl || undefined,
       dotsOptions: {
         color: customQrColor || selectedTemplate.qrColor || '#0f172a',
@@ -163,9 +170,100 @@ export function A4PosterStudio({
         if (canvas) {
           setQrDataUrl(canvas.toDataURL('image/png'));
         }
-      }, 120);
+      }, 100);
     }
   }, [isOpen, url, customQrColor, selectedTemplate.qrColor, centerLogoUrl, qrDotsType, qrCornersType, qrLogoSize]);
+
+  // Build Payload
+  const buildPosterData = useCallback((): A4PosterData => ({
+    documentTitle,
+    slug,
+    url,
+    template: selectedTemplate,
+    customTitle,
+    customSubtitle,
+    badgeText,
+    personName,
+    sunriseDate,
+    sunsetDate,
+    bottomNote,
+    titleFontSize,
+    qrSize,
+    qrCardOffsetY,
+    photoSize,
+    showBadge,
+    showPhoto,
+    showSunriseSunset,
+    showBottomNote,
+    photoUrl,
+    photoShape,
+    customBgUrl,
+    customBgOpacity,
+    qrDataUrl,
+    showHostingNotice: isProUser ? showHostingNotice : true,
+    isProUser,
+  }), [
+    documentTitle,
+    slug,
+    url,
+    selectedTemplate,
+    customTitle,
+    customSubtitle,
+    badgeText,
+    personName,
+    sunriseDate,
+    sunsetDate,
+    bottomNote,
+    titleFontSize,
+    qrSize,
+    qrCardOffsetY,
+    photoSize,
+    showBadge,
+    showPhoto,
+    showSunriseSunset,
+    showBottomNote,
+    photoUrl,
+    photoShape,
+    customBgUrl,
+    customBgOpacity,
+    qrDataUrl,
+    showHostingNotice,
+    isProUser,
+  ]);
+
+  // Live Canvas Renderer (Draws the exact output canvas onto the on-screen preview)
+  const updatePreviewCanvas = useCallback(async () => {
+    if (!previewCanvasRef.current || !qrDataUrl) return;
+
+    try {
+      setIsRenderingPreview(true);
+      const data = buildPosterData();
+      const highResCanvas = await renderA4PosterToCanvas(data);
+
+      const previewCanvas = previewCanvasRef.current;
+      previewCanvas.width = 1240; // High resolution preview width (1:2 ratio)
+      previewCanvas.height = 1754; // High resolution preview height
+
+      const pCtx = previewCanvas.getContext('2d');
+      if (pCtx) {
+        pCtx.imageSmoothingEnabled = true;
+        pCtx.imageSmoothingQuality = 'high';
+        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        pCtx.drawImage(highResCanvas, 0, 0, previewCanvas.width, previewCanvas.height);
+      }
+    } catch (e) {
+      console.warn('Error rendering live preview canvas:', e);
+    } finally {
+      setIsRenderingPreview(false);
+    }
+  }, [buildPosterData, qrDataUrl]);
+
+  // Update preview canvas whenever any setting changes
+  useEffect(() => {
+    if (isOpen && qrDataUrl) {
+      updatePreviewCanvas();
+    }
+  }, [isOpen, qrDataUrl, updatePreviewCanvas]);
 
   // Filter templates
   const filteredTemplates = useMemo(() => {
@@ -198,6 +296,7 @@ export function A4PosterStudio({
         setPhotoUrl(event.target?.result as string);
         setShowPhoto(true);
         if (photoShape === 'none') setPhotoShape('arch');
+        if (qrSize > 1150) setQrSize(1120); // Automatically adjust QR size to fit photo
       };
       reader.readAsDataURL(file);
     }
@@ -226,34 +325,6 @@ export function A4PosterStudio({
       reader.readAsDataURL(file);
     }
   };
-
-  // Build Payload
-  const buildPosterData = (): A4PosterData => ({
-    documentTitle,
-    slug,
-    url,
-    template: selectedTemplate,
-    customTitle,
-    customSubtitle,
-    badgeText,
-    personName,
-    sunriseDate,
-    sunsetDate,
-    bottomNote,
-    titleFontSize,
-    qrSize,
-    qrCardOffsetY,
-    photoSize,
-    showBadge,
-    showPhoto,
-    showSunriseSunset,
-    showBottomNote,
-    photoUrl,
-    photoShape,
-    customBgUrl,
-    qrDataUrl,
-    showHostingNotice,
-  });
 
   // Export handlers
   const handleDownloadPDF = async () => {
@@ -301,17 +372,14 @@ export function A4PosterStudio({
 
   if (!isOpen || !mounted) return null;
 
-  // Compute preview scaling based on controls
-  const previewScale = canvasZoom;
-
   const modalContent = (
-    <div className="fixed inset-0 z-[99999] bg-slate-950/90 backdrop-blur-xl flex flex-col w-screen h-screen overflow-hidden select-none animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[99999] bg-slate-950/92 backdrop-blur-xl flex flex-col w-screen h-screen overflow-hidden select-none animate-in fade-in duration-200">
       
       {/* Hidden offscreen QR renderer */}
       <div ref={qrRef} className="hidden" />
 
       {/* ================================================================= */}
-      {/* 1. TOP MASTER APP BAR                                             */}
+      {/* 1. TOP HEADER APP BAR                                             */}
       {/* ================================================================= */}
       <header className="h-16 px-4 sm:px-6 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 z-50">
         
@@ -335,11 +403,11 @@ export function A4PosterStudio({
           </div>
         </div>
 
-        {/* Center: Zoom & View Controls (Desktop) */}
+        {/* Center: Exact Zoom Controls (Default 70%) */}
         <div className="hidden lg:flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button
-            onClick={() => setCanvasZoom((prev) => Math.max(0.6, prev - 0.1))}
-            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors"
+            onClick={() => setCanvasZoom((prev) => Math.max(0.4, Number((prev - 0.1).toFixed(1))))}
+            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
@@ -348,27 +416,28 @@ export function A4PosterStudio({
             {Math.round(canvasZoom * 100)}%
           </span>
           <button
-            onClick={() => setCanvasZoom((prev) => Math.min(1.4, prev + 0.1))}
-            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors"
+            onClick={() => setCanvasZoom((prev) => Math.min(1.2, Number((prev + 0.1).toFixed(1))))}
+            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => setCanvasZoom(1)}
-            className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:text-blue-600 hover:bg-white transition-colors"
+            onClick={() => setCanvasZoom(0.7)}
+            className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:text-blue-600 hover:bg-white transition-colors cursor-pointer"
+            title="Reset to standard 70%"
           >
-            Reset
+            70%
           </button>
         </div>
 
-        {/* Right: Mode Toggle & Export Triggers */}
+        {/* Right: Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5">
           
-          {/* Edit / Customize Toggle Button */}
+          {/* Toggle Customizer Drawer */}
           <button
             onClick={() => setIsEditMode(!isEditMode)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer ${
               isEditMode
                 ? 'bg-blue-50 border border-blue-300 text-blue-700'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-transparent'
@@ -378,22 +447,21 @@ export function A4PosterStudio({
             <span className="hidden sm:inline">{isEditMode ? 'Hide Editor' : 'Customize & Edit'}</span>
           </button>
 
-          {/* Print Button */}
+          {/* Print */}
           <button
             onClick={handlePrint}
             disabled={isPrinting}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
-            title="Print Direct to Connected Printer"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>{isPrinting ? 'Preparing...' : 'Print'}</span>
           </button>
 
-          {/* PNG Poster Button */}
+          {/* Poster PNG */}
           <button
             onClick={handleDownloadPNG}
             disabled={isExportingPNG}
-            className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
+            className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
           >
             <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
             <span>Poster PNG</span>
@@ -403,7 +471,7 @@ export function A4PosterStudio({
           <button
             onClick={handleDownloadPDF}
             disabled={isExportingPDF}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>{isExportingPDF ? 'Generating...' : 'Download A4 PDF'}</span>
@@ -414,8 +482,8 @@ export function A4PosterStudio({
           {/* Close Studio */}
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-            aria-label="Close A4 Studio"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label="Close Studio"
           >
             <X className="w-5 h-5" />
           </button>
@@ -429,9 +497,7 @@ export function A4PosterStudio({
         <button
           onClick={() => setMobileTab('canvas')}
           className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-            mobileTab === 'canvas'
-              ? 'bg-blue-50 text-blue-700 shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-50'
+            mobileTab === 'canvas' ? 'bg-blue-50 text-blue-700 shadow-2xs' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
           <Eye className="w-3.5 h-3.5" />
@@ -440,9 +506,7 @@ export function A4PosterStudio({
         <button
           onClick={() => setMobileTab('editor')}
           className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-            mobileTab === 'editor'
-              ? 'bg-blue-50 text-blue-700 shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-50'
+            mobileTab === 'editor' ? 'bg-blue-50 text-blue-700 shadow-2xs' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
           <Edit3 className="w-3.5 h-3.5" />
@@ -451,213 +515,47 @@ export function A4PosterStudio({
       </div>
 
       {/* ================================================================= */}
-      {/* 3. MAIN WORKSPACE: A4 CANVAS VIEW + OPTIONAL EDIT DRAWER          */}
+      {/* 3. MAIN WORKSPACE                                                 */}
       {/* ================================================================= */}
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* --------------------------------------------------------------- */}
-        {/* A. A4 CANVAS VIEWPORT (PRIORITIZED, SCALED, & FULLY VISIBLE)    */}
+        {/* A. PIXEL-PERFECT LIVE A4 CANVAS PREVIEW (100% MATCHES PDF)      */}
         {/* --------------------------------------------------------------- */}
         <div
-          className={`flex-1 bg-slate-900/60 p-4 sm:p-6 lg:p-8 flex items-center justify-center overflow-y-auto custom-scrollbar relative transition-all duration-300 ${
+          className={`flex-1 bg-slate-950/80 p-4 sm:p-6 lg:p-8 flex items-center justify-center overflow-auto custom-scrollbar relative transition-all duration-300 ${
             mobileTab === 'editor' ? 'hidden lg:flex' : 'flex'
           }`}
         >
-          {/* A4 Sheet Container: Strict 1 : √2 (210/297) aspect ratio */}
+          {/* Canvas Wrapper scaled with canvasZoom */}
           <div
-            className="w-full max-w-[460px] md:max-w-[480px] lg:max-w-[500px] xl:max-w-[520px] aspect-[210/297] bg-white rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.45)] border border-white/40 relative overflow-hidden flex flex-col justify-between p-6 sm:p-7 select-none transition-transform duration-200"
+            className="relative transition-transform duration-200 shadow-[0_30px_90px_rgba(0,0,0,0.65)] rounded-2xl overflow-hidden border border-white/20 shrink-0"
             style={{
-              transform: `scale(${previewScale})`,
+              transform: `scale(${canvasZoom})`,
               transformOrigin: 'center center',
-              background: customBgUrl
-                ? `url(${customBgUrl}) center / cover no-repeat`
-                : selectedTemplate.bgGradient,
+              width: '620px',
+              maxWidth: '92vw',
+              aspectRatio: '210 / 297',
             }}
           >
-            {/* Outer Decorative Inset Frame */}
-            <div
-              className="absolute inset-2 sm:inset-3 border rounded-xl pointer-events-none"
-              style={{
-                borderColor: selectedTemplate.accentColor,
-                opacity: 0.35,
-              }}
-            />
-            <div
-              className="absolute inset-3 sm:inset-4 border rounded-lg pointer-events-none"
-              style={{
-                borderColor: selectedTemplate.accentColor,
-                opacity: 0.18,
-              }}
+            {/* The Actual Rendered Output Canvas */}
+            <canvas
+              ref={previewCanvasRef}
+              className="w-full h-full object-contain block bg-white"
             />
 
-            {/* TOP HEADER SECTION */}
-            <div className="relative z-10 text-center space-y-2 mt-1">
-              
-              {/* Top Pill Badge */}
-              {showBadge && badgeText && (
-                <div
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold tracking-wider uppercase border shadow-2xs"
-                  style={{
-                    backgroundColor: `${selectedTemplate.accentColor}18`,
-                    borderColor: selectedTemplate.accentColor,
-                    color: selectedTemplate.accentColor,
-                  }}
-                >
-                  <span>{badgeText}</span>
-                </div>
-              )}
-
-              {/* Main Title */}
-              <h1
-                className={`font-bold leading-tight px-2 ${
-                  selectedTemplate.fontFamily === 'serif' ? 'font-serif' : 'font-sans'
-                }`}
-                style={{
-                  color: selectedTemplate.titleColor,
-                  fontSize: `${Math.round(titleFontSize * 0.23)}px`,
-                }}
-              >
-                {customTitle}
-              </h1>
-
-              {/* Person Name (if memorial / wedding / spotlight) */}
-              {personName && (
-                <p
-                  className="font-bold italic"
-                  style={{
-                    color: selectedTemplate.accentColor,
-                    fontSize: `${Math.round(titleFontSize * 0.25)}px`,
-                  }}
-                >
-                  {personName}
-                </p>
-              )}
-
-              {/* Subtitle */}
-              {customSubtitle && (
-                <p
-                  className="text-[10px] sm:text-xs leading-relaxed max-w-[90%] mx-auto"
-                  style={{ color: selectedTemplate.subtitleColor }}
-                >
-                  {customSubtitle}
-                </p>
-              )}
-
-              {/* Portrait Photo (if enabled) */}
-              {showPhoto && photoUrl && photoShape !== 'none' && (
-                <div className="flex justify-center pt-1">
-                  <div
-                    className={`overflow-hidden border-2 shadow-md bg-white ${
-                      photoShape === 'circle'
-                        ? 'rounded-full'
-                        : photoShape === 'arch'
-                        ? 'rounded-t-full rounded-b-lg'
-                        : 'rounded-xl'
-                    }`}
-                    style={{
-                      width: `${Math.round(photoSize * 0.18)}px`,
-                      height: `${Math.round(photoSize * 0.18)}px`,
-                      borderColor: selectedTemplate.accentColor,
-                    }}
-                  >
-                    <img src={photoUrl} alt="Portrait" className="w-full h-full object-cover" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* CENTER: HIGH-RES QR CARD CONTAINER */}
-            <div
-              className="relative z-10 flex flex-col items-center my-auto"
-              style={{ transform: `translateY(${Math.round(qrCardOffsetY * 0.15)}px)` }}
-            >
-              <div
-                className="p-3.5 sm:p-4 rounded-2xl shadow-xl border flex flex-col items-center w-full"
-                style={{
-                  maxWidth: `${Math.round((qrSize + 260) * 0.25)}px`,
-                  backgroundColor: selectedTemplate.cardBg,
-                  borderColor: selectedTemplate.cardBorder,
-                }}
-              >
-                {/* Header Prompt (NO EMOJIS) */}
-                <span
-                  className="text-[8px] sm:text-[9px] font-bold tracking-wider uppercase mb-1.5"
-                  style={{ color: selectedTemplate.accentColor }}
-                >
-                  POINT CAMERA TO READ
-                </span>
-
-                {/* QR Code Canvas */}
-                {qrDataUrl ? (
-                  <div
-                    className="bg-white p-1 rounded-xl shadow-2xs flex items-center justify-center"
-                    style={{
-                      width: `${Math.round(qrSize * 0.24)}px`,
-                      height: `${Math.round(qrSize * 0.24)}px`,
-                    }}
-                  >
-                    <img src={qrDataUrl} alt="QR Code" className="w-full h-full object-contain" />
-                  </div>
-                ) : (
-                  <div
-                    className="bg-slate-100 animate-pulse rounded-xl"
-                    style={{
-                      width: `${Math.round(qrSize * 0.24)}px`,
-                      height: `${Math.round(qrSize * 0.24)}px`,
-                    }}
-                  />
-                )}
-
-                {/* Clean URL Pill */}
-                <div className="mt-2 px-2.5 py-1 rounded-full bg-slate-900/5 border border-slate-900/10 text-[8.5px] font-mono font-bold text-slate-800 truncate max-w-full">
-                  {url.replace(/^https?:\/\//, '')}
-                </div>
+            {/* Rendering spinner indicator */}
+            {isRenderingPreview && (
+              <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-mono text-white flex items-center gap-1.5 shadow-md">
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+                <span>Syncing 300 DPI Canvas</span>
               </div>
-            </div>
-
-            {/* BOTTOM FOOTER SECTION (NO EMOJIS) */}
-            <div className="relative z-10 text-center space-y-1.5 mb-1">
-              
-              {/* Sunrise & Sunset Dates (Typographic Dash, NO EMOJIS) */}
-              {showSunriseSunset && (selectedTemplate.category === 'memorial' || selectedTemplate.showSunriseSunset) && (
-                <div
-                  className="text-[10px] sm:text-xs font-bold tracking-wide flex items-center justify-center gap-2"
-                  style={{ color: selectedTemplate.accentColor }}
-                >
-                  <span>SUNRISE: {sunriseDate.toUpperCase()}</span>
-                  <span>—</span>
-                  <span>SUNSET: {sunsetDate.toUpperCase()}</span>
-                </div>
-              )}
-
-              {/* Bottom Quote / Ceremony Note */}
-              {showBottomNote && bottomNote && (
-                <p
-                  className="text-[9px] sm:text-[10px] italic max-w-[92%] mx-auto line-clamp-2"
-                  style={{ color: selectedTemplate.textColor }}
-                >
-                  {bottomNote}
-                </p>
-              )}
-
-              {/* Whizpoint System Disclaimer & Archival Notice (NO EMOJIS) */}
-              {showHostingNotice && (
-                <div className="pt-2 border-t border-slate-400/25 mt-2 space-y-0.5">
-                  <p className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-wider text-slate-600">
-                    WHIZPOINT FLIPBOOK DIGITAL PUBLISHING ENGINE • OFFICIAL PUBLICATION
-                  </p>
-                  <p className="text-[7px] sm:text-[7.5px] text-slate-500 leading-tight">
-                    Cloud Hosting Window Active. For Permanent Archival inquiries: WhatsApp +254 754 783 683 • support@whizpoint.app
-                  </p>
-                </div>
-              )}
-            </div>
-
+            )}
           </div>
         </div>
 
         {/* --------------------------------------------------------------- */}
-        {/* B. CUSTOMIZATION & EDIT DRAWER (TOGGLEABLE & POWERFUL)          */}
+        {/* B. SLIDING CUSTOMIZER & EDIT DRAWER                             */}
         {/* --------------------------------------------------------------- */}
         {isEditMode && (
           <aside
@@ -665,7 +563,7 @@ export function A4PosterStudio({
               mobileTab === 'canvas' ? 'hidden lg:flex' : 'flex'
             }`}
           >
-            {/* Sub-Tabs Selector */}
+            {/* Sub-Tabs Navigation */}
             <div className="flex border-b border-slate-200 bg-slate-50/80 p-1.5 gap-1 shrink-0 overflow-x-auto custom-scrollbar">
               {[
                 { id: 'templates', label: '50 Templates', icon: Layers },
@@ -694,13 +592,13 @@ export function A4PosterStudio({
               })}
             </div>
 
-            {/* Scrollable Customization Controls */}
+            {/* Tab Body */}
             <div className="flex-1 p-5 overflow-y-auto custom-scrollbar space-y-6">
               
               {/* TAB 1: 50 TEMPLATES */}
               {activeTab === 'templates' && (
                 <div className="space-y-4">
-                  {/* Category Pills */}
+                  {/* Category Filter Pills */}
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       { id: 'all', label: 'All (50)' },
@@ -782,7 +680,7 @@ export function A4PosterStudio({
               {activeTab === 'qr' && (
                 <div className="space-y-5">
                   
-                  {/* QR Code Size Slider */}
+                  {/* Large QR Code Size Slider */}
                   <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
                     <div className="flex justify-between items-center">
                       <label className="text-xs font-bold text-slate-800">QR Code Size</label>
@@ -790,17 +688,17 @@ export function A4PosterStudio({
                     </div>
                     <input
                       type="range"
-                      min={500}
-                      max={1050}
-                      step={20}
+                      min={800}
+                      max={1650}
+                      step={25}
                       value={qrSize}
                       onChange={(e) => setQrSize(Number(e.target.value))}
                       className="w-full accent-blue-600 cursor-pointer"
                     />
                     <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Compact (500)</span>
-                      <span>Balanced (760)</span>
-                      <span>Extra Large (1050)</span>
+                      <span>Standard (800)</span>
+                      <span>Default Large (1360)</span>
+                      <span>Max Fill (1650)</span>
                     </div>
                   </div>
 
@@ -809,27 +707,27 @@ export function A4PosterStudio({
                     <div className="flex justify-between items-center">
                       <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                         <Move className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Move QR Position (Up / Down)</span>
+                        <span>Shift QR Card Position (Up / Down)</span>
                       </label>
                       <span className="text-xs font-mono font-bold text-slate-700">{qrCardOffsetY} px</span>
                     </div>
                     <input
                       type="range"
-                      min={-200}
-                      max={200}
-                      step={10}
+                      min={-250}
+                      max={250}
+                      step={15}
                       value={qrCardOffsetY}
                       onChange={(e) => setQrCardOffsetY(Number(e.target.value))}
                       className="w-full accent-blue-600 cursor-pointer"
                     />
                     <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Shift Up (-200)</span>
+                      <span>Shift Up (-250)</span>
                       <span>Centered (0)</span>
-                      <span>Shift Down (+200)</span>
+                      <span>Shift Down (+250)</span>
                     </div>
                   </div>
 
-                  {/* Center Logo Controls */}
+                  {/* QR Center Logo Controls */}
                   <div className="space-y-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
                     <label className="text-xs font-bold text-slate-800 block">
                       QR Center Logo & Size
@@ -854,7 +752,7 @@ export function A4PosterStudio({
                         {centerLogoUrl && (
                           <button
                             onClick={() => setCenterLogoUrl(undefined)}
-                            className="block text-[11px] font-semibold text-red-600 hover:text-red-700"
+                            className="block text-[11px] font-semibold text-red-600 hover:text-red-700 cursor-pointer"
                           >
                             Remove Logo
                           </button>
@@ -900,7 +798,7 @@ export function A4PosterStudio({
                     </div>
                   </div>
 
-                  {/* Pattern & Eye Styles */}
+                  {/* Pattern Style */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-800 block">Pattern Style</label>
                     <div className="grid grid-cols-3 gap-2">
@@ -908,7 +806,7 @@ export function A4PosterStudio({
                         <button
                           key={style}
                           onClick={() => setQrDotsType(style)}
-                          className={`py-2 px-2 text-xs font-semibold rounded-xl border text-center transition-colors capitalize ${
+                          className={`py-2 px-2 text-xs font-semibold rounded-xl border text-center transition-colors capitalize cursor-pointer ${
                             qrDotsType === style
                               ? 'bg-blue-50 border-blue-600 text-blue-700 font-bold'
                               : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -949,7 +847,7 @@ export function A4PosterStudio({
                       <label className="text-xs font-bold text-slate-800">Top Badge Banner</label>
                       <button
                         onClick={() => setShowBadge(!showBadge)}
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer ${
                           showBadge ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
                         }`}
                       >
@@ -1004,13 +902,13 @@ export function A4PosterStudio({
                     />
                   </div>
 
-                  {/* Memorial Sunrise & Sunset (Clean Text Fields) */}
+                  {/* Memorial Dates */}
                   <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-amber-950">Memorial Dates</span>
                       <button
                         onClick={() => setShowSunriseSunset(!showSunriseSunset)}
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer ${
                           showSunriseSunset ? 'bg-amber-200 text-amber-900' : 'bg-slate-200 text-slate-600'
                         }`}
                       >
@@ -1056,7 +954,7 @@ export function A4PosterStudio({
                       </label>
                       <button
                         onClick={() => setShowBottomNote(!showBottomNote)}
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer ${
                           showBottomNote ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
                         }`}
                       >
@@ -1085,7 +983,7 @@ export function A4PosterStudio({
                     </div>
                     <button
                       onClick={() => setShowPhoto(!showPhoto)}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer ${
                         showPhoto ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
                       }`}
                     >
@@ -1115,7 +1013,7 @@ export function A4PosterStudio({
                           {photoUrl && (
                             <button
                               onClick={() => setPhotoUrl(null)}
-                              className="block text-[11px] font-semibold text-red-600 hover:text-red-700"
+                              className="block text-[11px] font-semibold text-red-600 hover:text-red-700 cursor-pointer"
                             >
                               Remove Photo
                             </button>
@@ -1135,7 +1033,7 @@ export function A4PosterStudio({
                             <button
                               key={shape.id}
                               onClick={() => setPhotoShape(shape.id as any)}
-                              className={`py-2 px-2 text-xs font-semibold rounded-xl border text-center transition-colors ${
+                              className={`py-2 px-2 text-xs font-semibold rounded-xl border text-center transition-colors cursor-pointer ${
                                 photoShape === shape.id
                                   ? 'bg-blue-50 border-blue-600 text-blue-700 font-bold'
                                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -1168,22 +1066,48 @@ export function A4PosterStudio({
                 </div>
               )}
 
-              {/* TAB 5: BACKGROUND & CUSTOM UPLOAD */}
+              {/* TAB 5: BACKGROUND & CUSTOM UPLOAD WITH TRANSPARENCY SLIDER */}
               {activeTab === 'background' && (
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900 mb-1">Custom Background Graphic</h4>
+                    <h4 className="text-xs font-bold text-slate-900 mb-1">Custom Background & Transparency</h4>
                     <p className="text-xs text-slate-500">
-                      Upload any prepared A4 background flyer and our system will overlay the high-res QR code, headings, and metadata cleanly on top.
+                      Upload your own background image and adjust transparency to blend smoothly with the template gradient.
                     </p>
                   </div>
 
                   <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-3">
                     {customBgUrl ? (
-                      <div className="space-y-2">
-                        <div className="h-28 rounded-xl overflow-hidden border border-slate-300">
+                      <div className="space-y-3">
+                        <div className="h-28 rounded-xl overflow-hidden border border-slate-300 relative">
                           <img src={customBgUrl} alt="Custom Background" className="w-full h-full object-cover" />
+                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] font-mono">
+                            {Math.round(customBgOpacity * 100)}% Opacity
+                          </div>
                         </div>
+
+                        {/* Transparency Slider */}
+                        <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200">
+                          <div className="flex justify-between text-xs font-bold text-slate-800">
+                            <span>Background Transparency</span>
+                            <span className="font-mono text-blue-600">{Math.round(customBgOpacity * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0.1}
+                            max={1.0}
+                            step={0.05}
+                            value={customBgOpacity}
+                            onChange={(e) => setCustomBgOpacity(Number(e.target.value))}
+                            className="w-full accent-blue-600 cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[10px] text-slate-400">
+                            <span>Subtle Blend (10%)</span>
+                            <span>Balanced (60%)</span>
+                            <span>Solid (100%)</span>
+                          </div>
+                        </div>
+
                         <button
                           onClick={() => setCustomBgUrl(null)}
                           className="text-xs font-semibold text-red-600 hover:text-red-700 cursor-pointer"
@@ -1205,33 +1129,48 @@ export function A4PosterStudio({
                 </div>
               )}
 
-              {/* TAB 6: HOSTING POLICY & PERMANENT RETENTION */}
+              {/* TAB 6: HOSTING & PRO WHITELABEL POLICY */}
               {activeTab === 'hosting' && (
                 <div className="space-y-4">
                   <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-200/80 space-y-2">
                     <div className="flex items-center gap-2 text-blue-900 font-bold text-xs">
                       <Info className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span>Cloud Hosting & Archival Lifecycle</span>
+                      <span>Cloud Hosting & Archival Policy</span>
                     </div>
                     <p className="text-xs text-blue-800/90 leading-relaxed">
                       All digital flipbooks are deployed with an active cloud hosting lifecycle. When a document expires, our automated system transitions it to archival storage.
                     </p>
                   </div>
 
+                  {/* Locked for Non-Pro Users */}
                   <div className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-white">
                     <div>
-                      <span className="text-xs font-bold text-slate-800 block">
-                        Include Archival Notice on Printout
-                      </span>
-                      <span className="text-[11px] text-slate-500">
-                        Displays hosting verification and contact channels.
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-800">
+                          Include Archival Notice on Printout
+                        </span>
+                        {!isProUser && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800">
+                            <Lock className="w-2.5 h-2.5" />
+                            <span>Pro Only</span>
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-500 block mt-0.5">
+                        {isProUser
+                          ? 'Toggle Whizpoint verification notice on printout.'
+                          : 'Mandatory on standard plan. Upgrade to Whizpoint Pro to whitelabel.'}
                       </span>
                     </div>
+
                     <input
                       type="checkbox"
-                      checked={showHostingNotice}
+                      checked={isProUser ? showHostingNotice : true}
+                      disabled={!isProUser}
                       onChange={(e) => setShowHostingNotice(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      className={`w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 ${
+                        !isProUser ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+                      }`}
                     />
                   </div>
 
