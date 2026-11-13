@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { NavigationHeader } from '@/components/navigation-header';
+import { Footer } from '@/components/footer';
 
 export default function PrivacyPage() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -331,10 +332,8 @@ export default function PrivacyPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-8 px-4 text-center text-xs text-slate-500">
-        <p>&copy; {new Date().getFullYear()} Whizpoint Solutions. All rights reserved. Kenya Data Protection Act Compliant.</p>
-      </footer>
+      {/* Universal Whizpoint Light-Mode Footer */}
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { NavigationHeader } from '@/components/navigation-header';
+import { Footer } from '@/components/footer';
 import {
   BookOpen,
   FileText,
@@ -608,80 +609,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Modern Light-Mode Footer */}
-      <footer className="border-t border-slate-200/80 bg-white/90 backdrop-blur-md relative z-10 pt-12 pb-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-slate-100">
-            {/* Column 1: Brand & Bio */}
-            <div className="md:col-span-2 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <img
-                  src="https://www.whizpoint.app/_next/image?url=%2Ficon.png&w=1920&q=75"
-                  alt="Whizpoint"
-                  className="h-7 w-auto object-contain"
-                />
-                <div className="flex flex-col">
-                  <span className="font-extrabold text-slate-900 leading-none">Whizpoint Flipbook</span>
-                  <span className="text-[10px] text-blue-600 font-semibold tracking-wider uppercase mt-0.5">
-                    Studio &bull; e.whizpoint.app
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
-                Industrial-grade client-side WebAssembly rasterization for A3 booklet spreads and single-page A4 publications with vector QR codes and Cloudflare R2 multi-region edge delivery.
-              </p>
-              <div className="text-xs text-slate-500 pt-1 space-y-1">
-                <div>
-                  Phone / WhatsApp:{' '}
-                  <a href="https://wa.me/254754783683" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold hover:underline">
-                    +254 754 783 683
-                  </a>{' '}
-                  <span className="text-slate-400">&bull;</span>{' '}
-                  <a href="tel:+254718311345" className="text-slate-700 hover:text-blue-600 font-medium">
-                    +254 718 311 345
-                  </a>
-                </div>
-                <div>
-                  Email: <a href="mailto:info@whizpoint.app" className="text-blue-600 hover:underline">info@whizpoint.app</a>
-                  {' '}&bull;{' '}
-                  <a href="mailto:support@whizpoint.app" className="text-blue-600 hover:underline">support@whizpoint.app</a>
-                </div>
-                <div>
-                  Online Portal: <a href="https://www.whizpoint.app/contact" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">whizpoint.app/contact</a>
-                  {' '}&bull; Nairobi, Kenya
-                </div>
-              </div>
-            </div>
-
-            {/* Column 2: Navigation */}
-            <div>
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">Platform</h4>
-              <ul className="space-y-2 text-xs text-slate-500">
-                <li><a href="#formats" className="hover:text-blue-600 transition-colors">A3 Booklet & A4 Formats</a></li>
-                <li><a href="#features" className="hover:text-blue-600 transition-colors">Imposition Features</a></li>
-                <li><a href="#how-it-works" className="hover:text-blue-600 transition-colors">Workflow & QR Engine</a></li>
-                <li><Link href="/gallery" className="hover:text-blue-600 transition-colors">Public Publications</Link></li>
-              </ul>
-            </div>
-
-            {/* Column 3: Legal & Security */}
-            <div>
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">Legal & Compliance</h4>
-              <ul className="space-y-2 text-xs text-slate-500">
-                <li><Link href="/privacy" className="hover:text-blue-600 transition-colors">Privacy Policy (KDPA &bull; GDPR)</Link></li>
-                <li><Link href="/terms" className="hover:text-blue-600 transition-colors">Terms of Service & SLAs</Link></li>
-                <li><a href="mailto:legal@whizpoint.app" className="hover:text-blue-600 transition-colors">DMCA Takedown Notice</a></li>
-                <li><Link href="/auth/login" className="hover:text-blue-600 transition-colors">Publisher Studio Sign In</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-            <p>&copy; {new Date().getFullYear()} Whizpoint Solutions. All rights reserved.</p>
-            <p className="font-mono text-[11px]">KDPA 2019 Registered &bull; AES-256 R2 Storage</p>
-          </div>
-        </div>
-      </footer>
+      {/* Universal Whizpoint Light-Mode Footer */}
+      <Footer />
     </div>
   );
 }
