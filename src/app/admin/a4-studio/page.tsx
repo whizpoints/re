@@ -199,17 +199,17 @@ export default function AdminA4StudioPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-2">
           <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg mb-2">
-            🌅
+            <Sparkles className="w-5 h-5" />
           </div>
           <h3 className="text-sm font-bold text-slate-900">Memorial & Eulogy Tributes</h3>
           <p className="text-xs text-slate-600 leading-relaxed">
-            Customize Sunrise (Date of Birth) & Sunset (Date of Resting) dates, upload high-res church arch portraits, and add comforting scripture quotes for funeral services and programs.
+            Customize Sunrise (Date of Birth) and Sunset (Date of Resting) dates, upload high-res church arch portraits, and add comforting scripture quotes for funeral services and programs.
           </p>
         </div>
 
         <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-2">
           <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-2">
-            📄
+            <FileText className="w-5 h-5" />
           </div>
           <h3 className="text-sm font-bold text-slate-900">300 DPI Vector PDF Engine</h3>
           <p className="text-xs text-slate-600 leading-relaxed">
@@ -219,7 +219,7 @@ export default function AdminA4StudioPage() {
 
         <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-2">
           <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg mb-2">
-            🛡️
+            <Layers className="w-5 h-5" />
           </div>
           <h3 className="text-sm font-bold text-slate-900">Cloud Hosting & Archival Notice</h3>
           <p className="text-xs text-slate-600 leading-relaxed">

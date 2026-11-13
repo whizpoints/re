@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Download,
@@ -8,20 +9,27 @@ import {
   Sparkles,
   Search,
   Upload,
-  Calendar,
   Layers,
   Sliders,
-  Maximize2,
   FileText,
   Image as ImageIcon,
   Check,
-  RefreshCw,
   Info,
   Phone,
   MessageSquare,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  ChevronRight,
+  Eye,
+  Edit3,
+  Move,
+  Type,
+  QrCode,
+  Palette,
 } from 'lucide-react';
 import QRCodeStyling from 'qr-code-styling';
-import { A4_TEMPLATES, A4Template, TemplateCategory } from '@/lib/templates/a4-templates';
+import { A4_TEMPLATES, A4Template } from '@/lib/templates/a4-templates';
 import {
   A4PosterData,
   downloadA4PDF,
@@ -47,15 +55,25 @@ export function A4PosterStudio({
   url,
   initialLogoUrl,
 }: A4PosterStudioProps) {
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<'templates' | 'content' | 'photo' | 'background' | 'hosting'>('templates');
+  // Mounting for React Portal
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // View Mode: 'view' (full A4 focus) vs 'edit' (split with customizer drawer)
+  const [isEditMode, setIsEditMode] = useState(true);
+  const [mobileTab, setMobileTab] = useState<'canvas' | 'editor'>('canvas');
+
+  // Active Customization Section
+  const [activeTab, setActiveTab] = useState<'templates' | 'qr' | 'typography' | 'photo' | 'background' | 'hosting'>('templates');
 
   // Selected Template
   const [selectedTemplate, setSelectedTemplate] = useState<A4Template>(A4_TEMPLATES[0]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Customizable Fields
+  // Customizable Texts
   const [customTitle, setCustomTitle] = useState(documentTitle || A4_TEMPLATES[0].defaultTitle);
   const [customSubtitle, setCustomSubtitle] = useState(A4_TEMPLATES[0].defaultSubtitle);
   const [badgeText, setBadgeText] = useState(A4_TEMPLATES[0].badgeText);
@@ -63,6 +81,19 @@ export function A4PosterStudio({
   const [sunriseDate, setSunriseDate] = useState('12 Jan 1954');
   const [sunsetDate, setSunsetDate] = useState('08 Nov 2026');
   const [bottomNote, setBottomNote] = useState(A4_TEMPLATES[0].defaultBottomNote);
+
+  // Sizing & Positioning Controls
+  const [titleFontSize, setTitleFontSize] = useState<number>(76);
+  const [qrSize, setQrSize] = useState<number>(760);
+  const [qrCardOffsetY, setQrCardOffsetY] = useState<number>(0);
+  const [photoSize, setPhotoSize] = useState<number>(460);
+  const [qrLogoSize, setQrLogoSize] = useState<number>(0.38);
+
+  // Layout Visibility Toggles
+  const [showBadge, setShowBadge] = useState(true);
+  const [showPhoto, setShowPhoto] = useState(true);
+  const [showSunriseSunset, setShowSunriseSunset] = useState(true);
+  const [showBottomNote, setShowBottomNote] = useState(true);
   const [showHostingNotice, setShowHostingNotice] = useState(true);
 
   // Photo
@@ -72,68 +103,69 @@ export function A4PosterStudio({
   // Custom Background
   const [customBgUrl, setCustomBgUrl] = useState<string | null>(null);
 
-  // Center Logo
-  const [centerLogoUrl, setCenterLogoUrl] = useState<string | undefined>(initialLogoUrl);
+  // QR Customization
+  const [centerLogoUrl, setCenterLogoUrl] = useState<string | undefined>(initialLogoUrl || '/logo.png');
+  const [qrDotsType, setQrDotsType] = useState<'extra-rounded' | 'rounded' | 'dots' | 'classy' | 'square'>('extra-rounded');
+  const [qrCornersType, setQrCornersType] = useState<'extra-rounded' | 'square' | 'dot'>('extra-rounded');
+  const [customQrColor, setCustomQrColor] = useState<string>(A4_TEMPLATES[0].qrColor);
 
-  // Loading States
+  // Canvas Zoom / Scale in Viewport
+  const [canvasZoom, setCanvasZoom] = useState<number>(1);
+
+  // Export Loading States
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isExportingPNG, setIsExportingPNG] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
 
-  // QR Code Instance & Data URL
+  // QR Code Generation
   const qrRef = useRef<HTMLDivElement>(null);
-  const qrCodeInstance = useRef<QRCodeStyling | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
-  // Generate QR Code data URL when url, color, or logo changes
+  // Re-generate QR Code whenever relevant settings change
   useEffect(() => {
     if (!isOpen) return;
 
     const qr = new QRCodeStyling({
-      width: 1200,
-      height: 1200,
+      width: 1400,
+      height: 1400,
       type: 'canvas',
       data: url,
-      margin: 15,
-      image: centerLogoUrl || '/logo.png',
+      margin: 14,
+      image: centerLogoUrl || undefined,
       dotsOptions: {
-        color: selectedTemplate.qrColor || '#0f172a',
-        type: 'extra-rounded',
+        color: customQrColor || selectedTemplate.qrColor || '#0f172a',
+        type: qrDotsType,
       },
       cornersSquareOptions: {
-        color: selectedTemplate.qrColor || '#0f172a',
-        type: 'extra-rounded',
+        color: customQrColor || selectedTemplate.qrColor || '#0f172a',
+        type: qrCornersType as any,
       },
       cornersDotOptions: {
-        color: selectedTemplate.qrColor || '#0f172a',
-        type: 'dot',
+        color: customQrColor || selectedTemplate.qrColor || '#0f172a',
+        type: qrCornersType === 'extra-rounded' ? 'dot' : (qrCornersType as any),
       },
       imageOptions: {
         crossOrigin: 'anonymous',
         margin: 10,
-        imageSize: 0.38,
+        imageSize: qrLogoSize,
       },
       backgroundOptions: {
         color: '#ffffff',
       },
     });
 
-    qrCodeInstance.current = qr;
-
-    // Render to invisible container to grab dataURL
     if (qrRef.current) {
       qrRef.current.innerHTML = '';
       qr.append(qrRef.current);
 
-      // Give canvas a frame to render
       setTimeout(() => {
         const canvas = qrRef.current?.querySelector('canvas') as HTMLCanvasElement;
         if (canvas) {
           setQrDataUrl(canvas.toDataURL('image/png'));
         }
-      }, 100);
+      }, 120);
     }
-  }, [isOpen, url, selectedTemplate.qrColor, centerLogoUrl]);
+  }, [isOpen, url, customQrColor, selectedTemplate.qrColor, centerLogoUrl, qrDotsType, qrCornersType, qrLogoSize]);
 
   // Filter templates
   const filteredTemplates = useMemo(() => {
@@ -147,13 +179,14 @@ export function A4PosterStudio({
     });
   }, [selectedCategory, searchQuery]);
 
-  // Template switch handler
+  // Handle template selection
   const handleSelectTemplate = (tpl: A4Template) => {
     setSelectedTemplate(tpl);
     setBadgeText(tpl.badgeText);
     setCustomTitle(tpl.defaultTitle);
     setCustomSubtitle(tpl.defaultSubtitle);
     setBottomNote(tpl.defaultBottomNote);
+    setCustomQrColor(tpl.qrColor);
   };
 
   // Photo Upload Handler
@@ -163,7 +196,20 @@ export function A4PosterStudio({
       const reader = new FileReader();
       reader.onload = (event) => {
         setPhotoUrl(event.target?.result as string);
+        setShowPhoto(true);
         if (photoShape === 'none') setPhotoShape('arch');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // QR Center Logo Upload Handler
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCenterLogoUrl(event.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -181,7 +227,7 @@ export function A4PosterStudio({
     }
   };
 
-  // Build payload
+  // Build Payload
   const buildPosterData = (): A4PosterData => ({
     documentTitle,
     slug,
@@ -194,6 +240,14 @@ export function A4PosterStudio({
     sunriseDate,
     sunsetDate,
     bottomNote,
+    titleFontSize,
+    qrSize,
+    qrCardOffsetY,
+    photoSize,
+    showBadge,
+    showPhoto,
+    showSunriseSunset,
+    showBottomNote,
     photoUrl,
     photoShape,
     customBgUrl,
@@ -245,244 +299,381 @@ export function A4PosterStudio({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden animate-in fade-in duration-200">
-      {/* Hidden container for QR canvas generation */}
+  // Compute preview scaling based on controls
+  const previewScale = canvasZoom;
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] bg-slate-950/90 backdrop-blur-xl flex flex-col w-screen h-screen overflow-hidden select-none animate-in fade-in duration-200">
+      
+      {/* Hidden offscreen QR renderer */}
       <div ref={qrRef} className="hidden" />
 
-      {/* Main Studio Frame */}
-      <div className="bg-slate-50 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xl w-full max-w-7xl h-[96vh] flex flex-col overflow-hidden">
+      {/* ================================================================= */}
+      {/* 1. TOP MASTER APP BAR                                             */}
+      {/* ================================================================= */}
+      <header className="h-16 px-4 sm:px-6 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 z-50">
         
-        {/* Top Control Bar */}
-        <header className="h-16 px-4 sm:px-6 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                  Whizpoint A4 Print & Standee Studio
-                </h2>
-                <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                  ISO-216 300 DPI
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 hidden sm:block truncate max-w-xs md:max-w-md">
-                Publishing Standee for: <span className="font-semibold text-slate-700">{documentTitle}</span>
-              </p>
-            </div>
+        {/* Left: Branding & Publication Title */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+            <FileText className="w-5 h-5" />
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={handlePrint}
-              disabled={isPrinting}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
-              title="Send to physical printer"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>{isPrinting ? 'Preparing...' : 'Print Direct'}</span>
-            </button>
-
-            <button
-              onClick={handleDownloadPNG}
-              disabled={isExportingPNG}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
-            >
-              <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden sm:inline">Poster PNG</span>
-            </button>
-
-            <button
-              onClick={handleDownloadPDF}
-              disabled={isExportingPDF}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>{isExportingPDF ? 'Generating...' : 'Download A4 PDF'}</span>
-            </button>
-
-            <div className="h-6 w-px bg-slate-200 mx-1" />
-
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-              aria-label="Close Studio"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate">
+                Whizpoint A4 Standee Studio
+              </h2>
+              <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                300 DPI Vector PDF
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 truncate max-w-xs md:max-w-md">
+              Publication: <span className="font-semibold text-slate-700">{documentTitle}</span>
+            </p>
           </div>
-        </header>
+        </div>
 
-        {/* Studio Workspace: Split Layout */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        {/* Center: Zoom & View Controls (Desktop) */}
+        <div className="hidden lg:flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button
+            onClick={() => setCanvasZoom((prev) => Math.max(0.6, prev - 0.1))}
+            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-[11px] font-mono font-bold text-slate-700 px-2 min-w-[50px] text-center">
+            {Math.round(canvasZoom * 100)}%
+          </span>
+          <button
+            onClick={() => setCanvasZoom((prev) => Math.min(1.4, prev + 0.1))}
+            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setCanvasZoom(1)}
+            className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:text-blue-600 hover:bg-white transition-colors"
+          >
+            Reset
+          </button>
+        </div>
+
+        {/* Right: Mode Toggle & Export Triggers */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
           
-          {/* LEFT: Live WYSIWYG A4 Canvas Preview */}
-          <div className="flex-1 bg-slate-200/70 p-4 sm:p-6 lg:p-8 flex items-center justify-center overflow-y-auto custom-scrollbar relative">
-            <div className="w-full max-w-[480px] lg:max-w-[440px] xl:max-w-[490px] aspect-[210/297] bg-white rounded-2xl shadow-2xl border border-slate-300/80 relative overflow-hidden flex flex-col justify-between p-6 sm:p-7 select-none transition-all duration-300"
+          {/* Edit / Customize Toggle Button */}
+          <button
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
+              isEditMode
+                ? 'bg-blue-50 border border-blue-300 text-blue-700'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-transparent'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{isEditMode ? 'Hide Editor' : 'Customize & Edit'}</span>
+          </button>
+
+          {/* Print Button */}
+          <button
+            onClick={handlePrint}
+            disabled={isPrinting}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
+            title="Print Direct to Connected Printer"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>{isPrinting ? 'Preparing...' : 'Print'}</span>
+          </button>
+
+          {/* PNG Poster Button */}
+          <button
+            onClick={handleDownloadPNG}
+            disabled={isExportingPNG}
+            className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
+          >
+            <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+            <span>Poster PNG</span>
+          </button>
+
+          {/* Download 300 DPI PDF */}
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isExportingPDF}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>{isExportingPDF ? 'Generating...' : 'Download A4 PDF'}</span>
+          </button>
+
+          <div className="h-6 w-px bg-slate-200 mx-0.5 sm:mx-1" />
+
+          {/* Close Studio */}
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+            aria-label="Close A4 Studio"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* ================================================================= */}
+      {/* 2. MOBILE VIEW SWITCHER                                           */}
+      {/* ================================================================= */}
+      <div className="lg:hidden flex bg-white border-b border-slate-200 p-1 shrink-0 z-40">
+        <button
+          onClick={() => setMobileTab('canvas')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+            mobileTab === 'canvas'
+              ? 'bg-blue-50 text-blue-700 shadow-2xs'
+              : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <Eye className="w-3.5 h-3.5" />
+          <span>View A4 Poster</span>
+        </button>
+        <button
+          onClick={() => setMobileTab('editor')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+            mobileTab === 'editor'
+              ? 'bg-blue-50 text-blue-700 shadow-2xs'
+              : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <Edit3 className="w-3.5 h-3.5" />
+          <span>Edit & Customize</span>
+        </button>
+      </div>
+
+      {/* ================================================================= */}
+      {/* 3. MAIN WORKSPACE: A4 CANVAS VIEW + OPTIONAL EDIT DRAWER          */}
+      {/* ================================================================= */}
+      <div className="flex-1 flex overflow-hidden relative">
+        
+        {/* --------------------------------------------------------------- */}
+        {/* A. A4 CANVAS VIEWPORT (PRIORITIZED, SCALED, & FULLY VISIBLE)    */}
+        {/* --------------------------------------------------------------- */}
+        <div
+          className={`flex-1 bg-slate-900/60 p-4 sm:p-6 lg:p-8 flex items-center justify-center overflow-y-auto custom-scrollbar relative transition-all duration-300 ${
+            mobileTab === 'editor' ? 'hidden lg:flex' : 'flex'
+          }`}
+        >
+          {/* A4 Sheet Container: Strict 1 : √2 (210/297) aspect ratio */}
+          <div
+            className="w-full max-w-[460px] md:max-w-[480px] lg:max-w-[500px] xl:max-w-[520px] aspect-[210/297] bg-white rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.45)] border border-white/40 relative overflow-hidden flex flex-col justify-between p-6 sm:p-7 select-none transition-transform duration-200"
+            style={{
+              transform: `scale(${previewScale})`,
+              transformOrigin: 'center center',
+              background: customBgUrl
+                ? `url(${customBgUrl}) center / cover no-repeat`
+                : selectedTemplate.bgGradient,
+            }}
+          >
+            {/* Outer Decorative Inset Frame */}
+            <div
+              className="absolute inset-2 sm:inset-3 border rounded-xl pointer-events-none"
               style={{
-                background: customBgUrl
-                  ? `url(${customBgUrl}) center / cover no-repeat`
-                  : selectedTemplate.bgGradient,
+                borderColor: selectedTemplate.accentColor,
+                opacity: 0.35,
               }}
-            >
-              {/* Outer Decorative Inset Border */}
-              <div
-                className="absolute inset-2 sm:inset-3 border rounded-xl pointer-events-none"
-                style={{
-                  borderColor: selectedTemplate.accentColor,
-                  opacity: 0.35,
-                }}
-              />
-              <div
-                className="absolute inset-3 sm:inset-4 border rounded-lg pointer-events-none"
-                style={{
-                  borderColor: selectedTemplate.accentColor,
-                  opacity: 0.18,
-                }}
-              />
+            />
+            <div
+              className="absolute inset-3 sm:inset-4 border rounded-lg pointer-events-none"
+              style={{
+                borderColor: selectedTemplate.accentColor,
+                opacity: 0.18,
+              }}
+            />
 
-              {/* Top Section */}
-              <div className="relative z-10 text-center space-y-2 mt-1">
-                {badgeText && (
-                  <div className="inline-flex items-center px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold tracking-wider uppercase border shadow-2xs"
-                    style={{
-                      backgroundColor: `${selectedTemplate.accentColor}18`,
-                      borderColor: selectedTemplate.accentColor,
-                      color: selectedTemplate.accentColor,
-                    }}
-                  >
-                    <span>{badgeText}</span>
-                  </div>
-                )}
-
-                <h1
-                  className={`text-lg sm:text-xl font-bold leading-tight px-2 ${
-                    selectedTemplate.fontFamily === 'serif' ? 'font-serif' : 'font-sans'
-                  }`}
-                  style={{ color: selectedTemplate.titleColor }}
+            {/* TOP HEADER SECTION */}
+            <div className="relative z-10 text-center space-y-2 mt-1">
+              
+              {/* Top Pill Badge */}
+              {showBadge && badgeText && (
+                <div
+                  className="inline-flex items-center px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold tracking-wider uppercase border shadow-2xs"
+                  style={{
+                    backgroundColor: `${selectedTemplate.accentColor}18`,
+                    borderColor: selectedTemplate.accentColor,
+                    color: selectedTemplate.accentColor,
+                  }}
                 >
-                  {customTitle}
-                </h1>
+                  <span>{badgeText}</span>
+                </div>
+              )}
 
-                {personName && (
-                  <p
-                    className="text-sm sm:text-base font-bold italic"
-                    style={{ color: selectedTemplate.accentColor }}
-                  >
-                    {personName}
-                  </p>
-                )}
+              {/* Main Title */}
+              <h1
+                className={`font-bold leading-tight px-2 ${
+                  selectedTemplate.fontFamily === 'serif' ? 'font-serif' : 'font-sans'
+                }`}
+                style={{
+                  color: selectedTemplate.titleColor,
+                  fontSize: `${Math.round(titleFontSize * 0.23)}px`,
+                }}
+              >
+                {customTitle}
+              </h1>
 
+              {/* Person Name (if memorial / wedding / spotlight) */}
+              {personName && (
+                <p
+                  className="font-bold italic"
+                  style={{
+                    color: selectedTemplate.accentColor,
+                    fontSize: `${Math.round(titleFontSize * 0.25)}px`,
+                  }}
+                >
+                  {personName}
+                </p>
+              )}
+
+              {/* Subtitle */}
+              {customSubtitle && (
                 <p
                   className="text-[10px] sm:text-xs leading-relaxed max-w-[90%] mx-auto"
                   style={{ color: selectedTemplate.subtitleColor }}
                 >
                   {customSubtitle}
                 </p>
+              )}
 
-                {/* Portrait Photo (if enabled) */}
-                {photoUrl && photoShape !== 'none' && (
-                  <div className="flex justify-center pt-1">
-                    <div
-                      className={`w-20 h-20 sm:w-24 sm:h-24 overflow-hidden border-2 shadow-md bg-white ${
-                        photoShape === 'circle'
-                          ? 'rounded-full'
-                          : photoShape === 'arch'
-                          ? 'rounded-t-full rounded-b-lg'
-                          : 'rounded-xl'
-                      }`}
-                      style={{ borderColor: selectedTemplate.accentColor }}
-                    >
-                      <img src={photoUrl} alt="Portrait" className="w-full h-full object-cover" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Center: High-Res QR Hero Card */}
-              <div className="relative z-10 my-auto flex flex-col items-center">
-                <div
-                  className="p-3.5 sm:p-4 rounded-2xl shadow-xl border flex flex-col items-center max-w-[240px] sm:max-w-[270px] w-full"
-                  style={{
-                    backgroundColor: selectedTemplate.cardBg,
-                    borderColor: selectedTemplate.cardBorder,
-                  }}
-                >
-                  <span
-                    className="text-[8px] sm:text-[9px] font-bold tracking-wider uppercase mb-1.5"
-                    style={{ color: selectedTemplate.accentColor }}
+              {/* Portrait Photo (if enabled) */}
+              {showPhoto && photoUrl && photoShape !== 'none' && (
+                <div className="flex justify-center pt-1">
+                  <div
+                    className={`overflow-hidden border-2 shadow-md bg-white ${
+                      photoShape === 'circle'
+                        ? 'rounded-full'
+                        : photoShape === 'arch'
+                        ? 'rounded-t-full rounded-b-lg'
+                        : 'rounded-xl'
+                    }`}
+                    style={{
+                      width: `${Math.round(photoSize * 0.18)}px`,
+                      height: `${Math.round(photoSize * 0.18)}px`,
+                      borderColor: selectedTemplate.accentColor,
+                    }}
                   >
-                    ⚡ Point Camera to Read
-                  </span>
-
-                  {qrDataUrl ? (
-                    <div className="w-36 h-36 sm:w-44 sm:h-44 bg-white p-1 rounded-xl shadow-2xs">
-                      <img src={qrDataUrl} alt="QR Code" className="w-full h-full object-contain" />
-                    </div>
-                  ) : (
-                    <div className="w-36 h-36 sm:w-44 sm:h-44 bg-slate-100 animate-pulse rounded-xl" />
-                  )}
-
-                  <div className="mt-2 px-2.5 py-1 rounded-full bg-slate-900/5 border border-slate-900/10 text-[9px] font-mono font-bold text-slate-800 truncate max-w-full">
-                    {url.replace(/^https?:\/\//, '')}
+                    <img src={photoUrl} alt="Portrait" className="w-full h-full object-cover" />
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* Bottom Section */}
-              <div className="relative z-10 text-center space-y-1.5 mb-1">
-                {/* Memorial Sunrise & Sunset */}
-                {(selectedTemplate.category === 'memorial' || selectedTemplate.showSunriseSunset) && (
+            {/* CENTER: HIGH-RES QR CARD CONTAINER */}
+            <div
+              className="relative z-10 flex flex-col items-center my-auto"
+              style={{ transform: `translateY(${Math.round(qrCardOffsetY * 0.15)}px)` }}
+            >
+              <div
+                className="p-3.5 sm:p-4 rounded-2xl shadow-xl border flex flex-col items-center w-full"
+                style={{
+                  maxWidth: `${Math.round((qrSize + 260) * 0.25)}px`,
+                  backgroundColor: selectedTemplate.cardBg,
+                  borderColor: selectedTemplate.cardBorder,
+                }}
+              >
+                {/* Header Prompt (NO EMOJIS) */}
+                <span
+                  className="text-[8px] sm:text-[9px] font-bold tracking-wider uppercase mb-1.5"
+                  style={{ color: selectedTemplate.accentColor }}
+                >
+                  POINT CAMERA TO READ
+                </span>
+
+                {/* QR Code Canvas */}
+                {qrDataUrl ? (
                   <div
-                    className="text-[10px] sm:text-xs font-bold tracking-wide flex items-center justify-center gap-3"
-                    style={{ color: selectedTemplate.accentColor }}
+                    className="bg-white p-1 rounded-xl shadow-2xs flex items-center justify-center"
+                    style={{
+                      width: `${Math.round(qrSize * 0.24)}px`,
+                      height: `${Math.round(qrSize * 0.24)}px`,
+                    }}
                   >
-                    <span>🌅 Sunrise: {sunriseDate}</span>
-                    <span>•</span>
-                    <span>🌇 Sunset: {sunsetDate}</span>
+                    <img src={qrDataUrl} alt="QR Code" className="w-full h-full object-contain" />
                   </div>
+                ) : (
+                  <div
+                    className="bg-slate-100 animate-pulse rounded-xl"
+                    style={{
+                      width: `${Math.round(qrSize * 0.24)}px`,
+                      height: `${Math.round(qrSize * 0.24)}px`,
+                    }}
+                  />
                 )}
 
-                {bottomNote && (
-                  <p
-                    className="text-[9px] sm:text-[10px] italic max-w-[92%] mx-auto line-clamp-2"
-                    style={{ color: selectedTemplate.textColor }}
-                  >
-                    {bottomNote}
-                  </p>
-                )}
-
-                {/* Whizpoint Archival & Temporary Hosting Notice */}
-                {showHostingNotice && (
-                  <div className="pt-2 border-t border-slate-400/25 mt-2 space-y-0.5">
-                    <p className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-wider text-slate-600">
-                      Whizpoint Flipbook Digital Engine • Official Publication
-                    </p>
-                    <p className="text-[7px] sm:text-[7.5px] text-slate-500 leading-tight">
-                      Active Cloud Hosting Window. For Permanent Archival or Re-Hosting inquiries: WhatsApp +254 754 783 683 • support@whizpoint.app
-                    </p>
-                  </div>
-                )}
+                {/* Clean URL Pill */}
+                <div className="mt-2 px-2.5 py-1 rounded-full bg-slate-900/5 border border-slate-900/10 text-[8.5px] font-mono font-bold text-slate-800 truncate max-w-full">
+                  {url.replace(/^https?:\/\//, '')}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* RIGHT: Studio Control & Customization Tabs */}
-          <div className="w-full lg:w-[460px] xl:w-[500px] bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col h-auto lg:h-full shrink-0">
-            
-            {/* Tab Navigation */}
-            <div className="flex border-b border-slate-200 bg-slate-50/70 p-1.5 gap-1 shrink-0 overflow-x-auto">
+            {/* BOTTOM FOOTER SECTION (NO EMOJIS) */}
+            <div className="relative z-10 text-center space-y-1.5 mb-1">
+              
+              {/* Sunrise & Sunset Dates (Typographic Dash, NO EMOJIS) */}
+              {showSunriseSunset && (selectedTemplate.category === 'memorial' || selectedTemplate.showSunriseSunset) && (
+                <div
+                  className="text-[10px] sm:text-xs font-bold tracking-wide flex items-center justify-center gap-2"
+                  style={{ color: selectedTemplate.accentColor }}
+                >
+                  <span>SUNRISE: {sunriseDate.toUpperCase()}</span>
+                  <span>—</span>
+                  <span>SUNSET: {sunsetDate.toUpperCase()}</span>
+                </div>
+              )}
+
+              {/* Bottom Quote / Ceremony Note */}
+              {showBottomNote && bottomNote && (
+                <p
+                  className="text-[9px] sm:text-[10px] italic max-w-[92%] mx-auto line-clamp-2"
+                  style={{ color: selectedTemplate.textColor }}
+                >
+                  {bottomNote}
+                </p>
+              )}
+
+              {/* Whizpoint System Disclaimer & Archival Notice (NO EMOJIS) */}
+              {showHostingNotice && (
+                <div className="pt-2 border-t border-slate-400/25 mt-2 space-y-0.5">
+                  <p className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-wider text-slate-600">
+                    WHIZPOINT FLIPBOOK DIGITAL PUBLISHING ENGINE • OFFICIAL PUBLICATION
+                  </p>
+                  <p className="text-[7px] sm:text-[7.5px] text-slate-500 leading-tight">
+                    Cloud Hosting Window Active. For Permanent Archival inquiries: WhatsApp +254 754 783 683 • support@whizpoint.app
+                  </p>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+
+        {/* --------------------------------------------------------------- */}
+        {/* B. CUSTOMIZATION & EDIT DRAWER (TOGGLEABLE & POWERFUL)          */}
+        {/* --------------------------------------------------------------- */}
+        {isEditMode && (
+          <aside
+            className={`w-full lg:w-[460px] xl:w-[490px] bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col h-full shrink-0 z-30 transition-all ${
+              mobileTab === 'canvas' ? 'hidden lg:flex' : 'flex'
+            }`}
+          >
+            {/* Sub-Tabs Selector */}
+            <div className="flex border-b border-slate-200 bg-slate-50/80 p-1.5 gap-1 shrink-0 overflow-x-auto custom-scrollbar">
               {[
                 { id: 'templates', label: '50 Templates', icon: Layers },
-                { id: 'content', label: 'Text & Details', icon: Sliders },
+                { id: 'qr', label: 'QR & Logo', icon: QrCode },
+                { id: 'typography', label: 'Text & Sizes', icon: Type },
                 { id: 'photo', label: 'Photo', icon: ImageIcon },
-                { id: 'background', label: 'Background', icon: Sparkles },
-                { id: 'hosting', label: 'Hosting Policy', icon: Info },
+                { id: 'background', label: 'Background', icon: Palette },
+                { id: 'hosting', label: 'Archival Policy', icon: Info },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -490,9 +681,9 @@ export function A4PosterStudio({
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                       isActive
-                        ? 'bg-white text-blue-600 shadow-xs border border-slate-200/80 font-bold'
+                        ? 'bg-white text-blue-600 shadow-xs border border-slate-200 font-bold'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     }`}
                   >
@@ -503,27 +694,27 @@ export function A4PosterStudio({
               })}
             </div>
 
-            {/* Tab Body (Scrollable) */}
-            <div className="flex-1 p-5 overflow-y-auto custom-scrollbar space-y-5">
+            {/* Scrollable Customization Controls */}
+            <div className="flex-1 p-5 overflow-y-auto custom-scrollbar space-y-6">
               
               {/* TAB 1: 50 TEMPLATES */}
               {activeTab === 'templates' && (
                 <div className="space-y-4">
-                  {/* Category Filter Pills */}
+                  {/* Category Pills */}
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       { id: 'all', label: 'All (50)' },
-                      { id: 'memorial', label: 'Memorial & Life' },
+                      { id: 'memorial', label: 'Memorial' },
                       { id: 'wedding', label: 'Weddings' },
-                      { id: 'corporate', label: 'Corporate & Reports' },
-                      { id: 'restaurant', label: 'Menus & Cafes' },
+                      { id: 'corporate', label: 'Corporate' },
+                      { id: 'restaurant', label: 'Menus' },
                       { id: 'realestate', label: 'Real Estate' },
-                      { id: 'events', label: 'Galas & Events' },
+                      { id: 'events', label: 'Galas' },
                     ].map((cat) => (
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                           selectedCategory === cat.id
                             ? 'bg-blue-600 text-white font-semibold'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -534,27 +725,27 @@ export function A4PosterStudio({
                     ))}
                   </div>
 
-                  {/* Search Bar */}
+                  {/* Search */}
                   <div className="relative">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="Search templates (e.g. sunrise, marble, bistro, cross)..."
+                      placeholder="Search templates (e.g. sunrise, marble, bistro)..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
                   </div>
 
-                  {/* Template Grid */}
-                  <div className="grid grid-cols-2 gap-3 max-h-[55vh] overflow-y-auto pr-1 custom-scrollbar">
+                  {/* Grid of Templates */}
+                  <div className="grid grid-cols-2 gap-2.5 max-h-[58vh] overflow-y-auto pr-1 custom-scrollbar">
                     {filteredTemplates.map((tpl) => {
                       const isSelected = selectedTemplate.id === tpl.id;
                       return (
                         <button
                           key={tpl.id}
                           onClick={() => handleSelectTemplate(tpl)}
-                          className={`text-left p-3 rounded-2xl border transition-all relative flex flex-col justify-between h-28 group overflow-hidden ${
+                          className={`text-left p-3 rounded-2xl border transition-all relative flex flex-col justify-between h-28 group overflow-hidden cursor-pointer ${
                             isSelected
                               ? 'border-blue-600 ring-2 ring-blue-500/20 shadow-md bg-white'
                               : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
@@ -568,7 +759,7 @@ export function A4PosterStudio({
                             <span className="text-[9px] font-mono uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
                               {tpl.category}
                             </span>
-                            <div className="text-xs font-bold text-slate-900 mt-1.5 leading-snug line-clamp-1">
+                            <div className="text-xs font-bold text-slate-900 mt-1 leading-snug line-clamp-1">
                               {tpl.name}
                             </div>
                             <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-tight">
@@ -587,26 +778,198 @@ export function A4PosterStudio({
                 </div>
               )}
 
-              {/* TAB 2: TEXT & DETAILS */}
-              {activeTab === 'content' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Top Badge Banner
-                    </label>
+              {/* TAB 2: QR CODE & LOGO SIZING / MOVEMENT */}
+              {activeTab === 'qr' && (
+                <div className="space-y-5">
+                  
+                  {/* QR Code Size Slider */}
+                  <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-slate-800">QR Code Size</label>
+                      <span className="text-xs font-mono font-bold text-blue-600">{qrSize} px</span>
+                    </div>
                     <input
-                      type="text"
-                      value={badgeText}
-                      onChange={(e) => setBadgeText(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      placeholder="e.g. IN LOVING MEMORY, OFFICIAL PUBLICATION"
+                      type="range"
+                      min={500}
+                      max={1050}
+                      step={20}
+                      value={qrSize}
+                      onChange={(e) => setQrSize(Number(e.target.value))}
+                      className="w-full accent-blue-600 cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>Compact (500)</span>
+                      <span>Balanced (760)</span>
+                      <span>Extra Large (1050)</span>
+                    </div>
+                  </div>
+
+                  {/* QR Vertical Position Slider */}
+                  <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Move className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Move QR Position (Up / Down)</span>
+                      </label>
+                      <span className="text-xs font-mono font-bold text-slate-700">{qrCardOffsetY} px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={-200}
+                      max={200}
+                      step={10}
+                      value={qrCardOffsetY}
+                      onChange={(e) => setQrCardOffsetY(Number(e.target.value))}
+                      className="w-full accent-blue-600 cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>Shift Up (-200)</span>
+                      <span>Centered (0)</span>
+                      <span>Shift Down (+200)</span>
+                    </div>
+                  </div>
+
+                  {/* Center Logo Controls */}
+                  <div className="space-y-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <label className="text-xs font-bold text-slate-800 block">
+                      QR Center Logo & Size
+                    </label>
+                    <div className="flex items-center gap-3">
+                      {centerLogoUrl ? (
+                        <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 p-1 shrink-0 overflow-hidden">
+                          <img src={centerLogoUrl} alt="Logo" className="w-full h-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400 shrink-0 text-[10px] font-bold">
+                          None
+                        </div>
+                      )}
+
+                      <div className="flex-1 space-y-1">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs">
+                          <Upload className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Upload Custom Logo</span>
+                          <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                        </label>
+                        {centerLogoUrl && (
+                          <button
+                            onClick={() => setCenterLogoUrl(undefined)}
+                            className="block text-[11px] font-semibold text-red-600 hover:text-red-700"
+                          >
+                            Remove Logo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {centerLogoUrl && (
+                      <div className="space-y-1 pt-2">
+                        <div className="flex justify-between text-[11px] font-semibold text-slate-700">
+                          <span>Logo Scale</span>
+                          <span className="font-mono">{Math.round(qrLogoSize * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0.2}
+                          max={0.5}
+                          step={0.02}
+                          value={qrLogoSize}
+                          onChange={(e) => setQrLogoSize(Number(e.target.value))}
+                          className="w-full accent-blue-600 cursor-pointer"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* QR Foreground Color */}
+                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">QR Color</span>
+                      <span className="text-[11px] text-slate-500">Pick matching brand color</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={customQrColor}
+                        onChange={(e) => setCustomQrColor(e.target.value)}
+                        className="w-9 h-9 rounded-xl border border-slate-300 cursor-pointer p-0"
+                      />
+                      <span className="text-xs font-mono font-bold text-slate-700 uppercase">
+                        {customQrColor}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pattern & Eye Styles */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-800 block">Pattern Style</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['extra-rounded', 'rounded', 'dots', 'classy', 'square'] as const).map((style) => (
+                        <button
+                          key={style}
+                          onClick={() => setQrDotsType(style)}
+                          className={`py-2 px-2 text-xs font-semibold rounded-xl border text-center transition-colors capitalize ${
+                            qrDotsType === style
+                              ? 'bg-blue-50 border-blue-600 text-blue-700 font-bold'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {style.replace('-', ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: TEXT & TYPOGRAPHY SIZING */}
+              {activeTab === 'typography' && (
+                <div className="space-y-4">
+                  
+                  {/* Title Font Size Slider */}
+                  <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-slate-800">Main Title Size</label>
+                      <span className="text-xs font-mono font-bold text-blue-600">{titleFontSize} px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={48}
+                      max={110}
+                      step={2}
+                      value={titleFontSize}
+                      onChange={(e) => setTitleFontSize(Number(e.target.value))}
+                      className="w-full accent-blue-600 cursor-pointer"
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Main Header Title
-                    </label>
+                  {/* Top Badge Banner */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-slate-800">Top Badge Banner</label>
+                      <button
+                        onClick={() => setShowBadge(!showBadge)}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          showBadge ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {showBadge ? 'Visible' : 'Hidden'}
+                      </button>
+                    </div>
+                    {showBadge && (
+                      <input
+                        type="text"
+                        value={badgeText}
+                        onChange={(e) => setBadgeText(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        placeholder="e.g. IN LOVING MEMORY, OFFICIAL PUBLICATION"
+                      />
+                    )}
+                  </div>
+
+                  {/* Main Header Title */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-800 block">Header Title</label>
                     <input
                       type="text"
                       value={customTitle}
@@ -616,9 +979,10 @@ export function A4PosterStudio({
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Person Name / Couple / Author (Optional)
+                  {/* Person Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-800 block">
+                      Person Name / Couple / Author
                     </label>
                     <input
                       type="text"
@@ -629,10 +993,9 @@ export function A4PosterStudio({
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Subtitle / Instructions
-                    </label>
+                  {/* Subtitle */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-800 block">Subtitle</label>
                     <textarea
                       rows={2}
                       value={customSubtitle}
@@ -641,133 +1004,181 @@ export function A4PosterStudio({
                     />
                   </div>
 
-                  {/* Memorial Dates */}
-                  {(selectedTemplate.category === 'memorial' || selectedTemplate.showSunriseSunset) && (
-                    <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80">
-                      <div>
-                        <label className="text-[11px] font-semibold text-amber-900 flex items-center gap-1 mb-1">
-                          🌅 Sunrise (Birth)
-                        </label>
-                        <input
-                          type="text"
-                          value={sunriseDate}
-                          onChange={(e) => setSunriseDate(e.target.value)}
-                          className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-medium text-amber-950 focus:outline-none"
-                          placeholder="12 Jan 1954"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-semibold text-amber-900 flex items-center gap-1 mb-1">
-                          🌇 Sunset (Resting)
-                        </label>
-                        <input
-                          type="text"
-                          value={sunsetDate}
-                          onChange={(e) => setSunsetDate(e.target.value)}
-                          className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-medium text-amber-950 focus:outline-none"
-                          placeholder="08 Nov 2026"
-                        />
-                      </div>
+                  {/* Memorial Sunrise & Sunset (Clean Text Fields) */}
+                  <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-amber-950">Memorial Dates</span>
+                      <button
+                        onClick={() => setShowSunriseSunset(!showSunriseSunset)}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          showSunriseSunset ? 'bg-amber-200 text-amber-900' : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {showSunriseSunset ? 'Visible' : 'Hidden'}
+                      </button>
                     </div>
-                  )}
 
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Bottom Note / Memorial Scripture / Venue
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={bottomNote}
-                      onChange={(e) => setBottomNote(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: PHOTO & PORTRAIT */}
-              {activeTab === 'photo' && (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 mb-1">Portrait or Ceremony Photo</h4>
-                    <p className="text-xs text-slate-500">
-                      Upload a photo of the deceased, wedding couple, keynote speaker, or venue for the A4 poster.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 bg-slate-50/60">
-                    {photoUrl ? (
-                      <div className="w-16 h-16 rounded-xl overflow-hidden border border-slate-300 shrink-0">
-                        <img src={photoUrl} alt="Uploaded" className="w-full h-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="w-16 h-16 rounded-xl bg-slate-200/70 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 shrink-0">
-                        <ImageIcon className="w-6 h-6" />
+                    {showSunriseSunset && (
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="text-[11px] font-semibold text-amber-900 block mb-1">
+                            Sunrise (Birth)
+                          </label>
+                          <input
+                            type="text"
+                            value={sunriseDate}
+                            onChange={(e) => setSunriseDate(e.target.value)}
+                            className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-medium text-amber-950 focus:outline-none"
+                            placeholder="12 Jan 1954"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-semibold text-amber-900 block mb-1">
+                            Sunset (Resting)
+                          </label>
+                          <input
+                            type="text"
+                            value={sunsetDate}
+                            onChange={(e) => setSunsetDate(e.target.value)}
+                            className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-medium text-amber-950 focus:outline-none"
+                            placeholder="08 Nov 2026"
+                          />
+                        </div>
                       </div>
                     )}
-
-                    <div className="flex-1 space-y-2">
-                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs">
-                        <Upload className="w-3.5 h-3.5 text-blue-600" />
-                        <span>{photoUrl ? 'Replace Photo' : 'Upload Image'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handlePhotoUpload}
-                          className="hidden"
-                        />
-                      </label>
-
-                      {photoUrl && (
-                        <button
-                          onClick={() => setPhotoUrl(null)}
-                          className="block text-[11px] font-semibold text-red-600 hover:text-red-700"
-                        >
-                          Remove Photo
-                        </button>
-                      )}
-                    </div>
                   </div>
 
-                  {photoUrl && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-slate-700 block">Frame Shape</label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {[
-                          { id: 'arch', label: 'Church Arch' },
-                          { id: 'circle', label: 'Circle' },
-                          { id: 'rounded', label: 'Rounded' },
-                          { id: 'none', label: 'Hidden' },
-                        ].map((shape) => (
-                          <button
-                            key={shape.id}
-                            onClick={() => setPhotoShape(shape.id as any)}
-                            className={`py-2 px-2 rounded-xl text-xs font-medium border text-center transition-colors ${
-                              photoShape === shape.id
-                                ? 'bg-blue-50 border-blue-600 text-blue-700 font-bold'
-                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                            }`}
-                          >
-                            {shape.label}
-                          </button>
-                        ))}
-                      </div>
+                  {/* Bottom Note */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-slate-800">
+                        Bottom Scripture / Venue / Quote
+                      </label>
+                      <button
+                        onClick={() => setShowBottomNote(!showBottomNote)}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          showBottomNote ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {showBottomNote ? 'Visible' : 'Hidden'}
+                      </button>
                     </div>
+                    {showBottomNote && (
+                      <textarea
+                        rows={2}
+                        value={bottomNote}
+                        onChange={(e) => setBottomNote(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: PHOTO SIZING & SHAPING */}
+              {activeTab === 'photo' && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">Portrait Photo</h4>
+                      <p className="text-[11px] text-slate-500">For eulogies, weddings, or authors.</p>
+                    </div>
+                    <button
+                      onClick={() => setShowPhoto(!showPhoto)}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        showPhoto ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {showPhoto ? 'Visible' : 'Hidden'}
+                    </button>
+                  </div>
+
+                  {showPhoto && (
+                    <>
+                      <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 bg-slate-50">
+                        {photoUrl ? (
+                          <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-300 shrink-0">
+                            <img src={photoUrl} alt="Portrait" className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-xl bg-slate-200 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 shrink-0">
+                            <ImageIcon className="w-5 h-5" />
+                          </div>
+                        )}
+
+                        <div className="flex-1 space-y-1.5">
+                          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs">
+                            <Upload className="w-3.5 h-3.5 text-blue-600" />
+                            <span>{photoUrl ? 'Replace Photo' : 'Upload Portrait'}</span>
+                            <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                          </label>
+                          {photoUrl && (
+                            <button
+                              onClick={() => setPhotoUrl(null)}
+                              className="block text-[11px] font-semibold text-red-600 hover:text-red-700"
+                            >
+                              Remove Photo
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Photo Shape */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-800 block">Frame Shape</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { id: 'arch', label: 'Church Arch' },
+                            { id: 'circle', label: 'Circle' },
+                            { id: 'rounded', label: 'Rounded' },
+                          ].map((shape) => (
+                            <button
+                              key={shape.id}
+                              onClick={() => setPhotoShape(shape.id as any)}
+                              className={`py-2 px-2 text-xs font-semibold rounded-xl border text-center transition-colors ${
+                                photoShape === shape.id
+                                  ? 'bg-blue-50 border-blue-600 text-blue-700 font-bold'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              {shape.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Photo Size Slider */}
+                      <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-slate-800">Photo Size</label>
+                          <span className="text-xs font-mono font-bold text-blue-600">{photoSize} px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={240}
+                          max={650}
+                          step={20}
+                          value={photoSize}
+                          onChange={(e) => setPhotoSize(Number(e.target.value))}
+                          className="w-full accent-blue-600 cursor-pointer"
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
               )}
 
-              {/* TAB 4: BACKGROUND & CUSTOM UPLOAD */}
+              {/* TAB 5: BACKGROUND & CUSTOM UPLOAD */}
               {activeTab === 'background' && (
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-xs font-bold text-slate-900 mb-1">Custom Background Graphic</h4>
                     <p className="text-xs text-slate-500">
-                      Already have an A4 background flyer designed by your graphics team? Upload it here and our system will overlay the high-res QR code and metadata on top.
+                      Upload any prepared A4 background flyer and our system will overlay the high-res QR code, headings, and metadata cleanly on top.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
+                  <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-3">
                     {customBgUrl ? (
                       <div className="space-y-2">
                         <div className="h-28 rounded-xl overflow-hidden border border-slate-300">
@@ -775,68 +1186,59 @@ export function A4PosterStudio({
                         </div>
                         <button
                           onClick={() => setCustomBgUrl(null)}
-                          className="text-xs font-semibold text-red-600 hover:text-red-700"
+                          className="text-xs font-semibold text-red-600 hover:text-red-700 cursor-pointer"
                         >
                           Clear Custom Background (Use Preset)
                         </button>
                       </div>
                     ) : (
                       <label className="border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-white group">
-                        <Upload className="w-8 h-8 text-slate-400 group-hover:text-blue-600 mb-2 transition-colors" />
+                        <Upload className="w-7 h-7 text-slate-400 group-hover:text-blue-600 mb-2 transition-colors" />
                         <span className="text-xs font-semibold text-slate-700 group-hover:text-blue-700">
-                          Click to upload custom A4 background
+                          Click to upload custom A4 flyer graphic
                         </span>
                         <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, or WebP</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleCustomBgUpload}
-                          className="hidden"
-                        />
+                        <input type="file" accept="image/*" onChange={handleCustomBgUpload} className="hidden" />
                       </label>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* TAB 5: HOSTING POLICY & PERMANENT ARCHIVAL */}
+              {/* TAB 6: HOSTING POLICY & PERMANENT RETENTION */}
               {activeTab === 'hosting' && (
                 <div className="space-y-4">
                   <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-200/80 space-y-2">
                     <div className="flex items-center gap-2 text-blue-900 font-bold text-xs">
                       <Info className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span>Temporary Hosting & Archival Policy</span>
+                      <span>Cloud Hosting & Archival Lifecycle</span>
                     </div>
                     <p className="text-xs text-blue-800/90 leading-relaxed">
-                      By default, all digital flipbooks are provisioned with an active temporary cloud hosting window. When a document expires, our automated system schedules it for archiving.
+                      All digital flipbooks are deployed with an active cloud hosting lifecycle. When a document expires, our automated system transitions it to archival storage.
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-white">
                     <div>
-                      <span className="text-xs font-semibold text-slate-800 block">
+                      <span className="text-xs font-bold text-slate-800 block">
                         Include Archival Notice on Printout
                       </span>
                       <span className="text-[11px] text-slate-500">
-                        Shows hosting status and contact for permanent retention.
+                        Displays hosting verification and contact channels.
                       </span>
                     </div>
                     <input
                       type="checkbox"
                       checked={showHostingNotice}
                       onChange={(e) => setShowHostingNotice(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
                     />
                   </div>
 
-                  <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-3">
+                  <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-2.5">
                     <h5 className="text-xs font-bold text-slate-900">
-                      Need Permanent Archival Hosting?
+                      Reserve Permanent Hosting & Custom Domains:
                     </h5>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      Contact Whizpoint Solutions to lock in permanent 10-year archival hosting or custom domains for your publication:
-                    </p>
-
                     <div className="space-y-1.5 text-xs">
                       <a
                         href="https://wa.me/254754783683"
@@ -852,7 +1254,7 @@ export function A4PosterStudio({
                         className="flex items-center gap-2 text-blue-700 font-semibold hover:underline"
                       >
                         <Phone className="w-3.5 h-3.5" />
-                        <span>Phone / Call: +254 718 311 345</span>
+                        <span>Phone: +254 718 311 345</span>
                       </a>
                     </div>
                   </div>
@@ -861,32 +1263,31 @@ export function A4PosterStudio({
 
             </div>
 
-            {/* Bottom Sticky Action Bar */}
-            <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+            {/* Bottom Actions inside Drawer */}
+            <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0">
               <button
-                onClick={handlePrint}
-                disabled={isPrinting}
-                className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5"
+                onClick={() => setIsEditMode(false)}
+                className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors text-center cursor-pointer"
               >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print</span>
+                Done Editing
               </button>
 
               <button
                 onClick={handleDownloadPDF}
                 disabled={isExportingPDF}
-                className="flex-[2] py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                className="flex-[2] py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>{isExportingPDF ? 'Generating PDF...' : 'Download A4 PDF (300 DPI)'}</span>
+                <span>{isExportingPDF ? 'Generating...' : 'Download A4 PDF'}</span>
               </button>
             </div>
-
-          </div>
-
-        </div>
+          </aside>
+        )}
 
       </div>
+
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

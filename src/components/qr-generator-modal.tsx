@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Upload, Settings2, Download, Crop as CropIcon, FileText, Sparkles } from 'lucide-react';
 import { StyledQR } from './styled-qr';
 import { A4PosterStudio } from './a4-poster-studio';
@@ -14,6 +15,11 @@ interface QRGeneratorModalProps {
 }
 
 export function QRGeneratorModal({ url, onClose, documentTitle }: QRGeneratorModalProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [logoUrl, setLogoUrl] = useState<string>('');
   const [isA4StudioOpen, setIsA4StudioOpen] = useState(false);
   const slug = url.split('/').filter(Boolean).pop() || 'document';
@@ -117,9 +123,11 @@ export function QRGeneratorModal({ url, onClose, documentTitle }: QRGeneratorMod
     }
   };
 
+  if (!mounted) return null;
+
   if (isCropping && imageSrc) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-slate-900/90 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
+    return createPortal(
+      <div className="fixed inset-0 z-[99990] bg-slate-900/90 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
         <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col h-[80vh]">
           <div className="p-4 border-b border-slate-100 flex justify-between items-center">
             <h3 className="font-bold text-slate-900">Crop Logo</h3>
@@ -163,12 +171,13 @@ export function QRGeneratorModal({ url, onClose, documentTitle }: QRGeneratorMod
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-[90] bg-slate-900/60 flex items-center justify-center p-4 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[99990] bg-slate-900/60 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-3xl p-4 sm:p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative flex flex-col md:flex-row gap-6 md:gap-8">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 z-10 bg-slate-100 rounded-full p-1">
           <X className="w-5 h-5" />
@@ -298,6 +307,7 @@ export function QRGeneratorModal({ url, onClose, documentTitle }: QRGeneratorMod
           initialLogoUrl={logoUrl || undefined}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
