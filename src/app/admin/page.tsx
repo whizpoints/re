@@ -22,6 +22,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { QRGeneratorModal } from '@/components/qr-generator-modal';
+import { A4PosterStudio } from '@/components/a4-poster-studio';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { toast } from 'react-hot-toast';
 import { processPdf } from '@/lib/pdf-processor';
@@ -43,6 +44,7 @@ export default function AdminDashboard() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [docToDelete, setDocToDelete] = useState<Document | null>(null);
   const [qrDoc, setQrDoc] = useState<Document | null>(null);
+  const [a4Doc, setA4Doc] = useState<Document | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [updateProgress, setUpdateProgress] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -459,6 +461,15 @@ export default function AdminDashboard() {
                             <QrCode className="w-4 h-4" />
                           </button>
 
+                          {/* Print A4 Standee / Poster */}
+                          <button
+                            onClick={() => setA4Doc(doc)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                            title="Print A4 Poster & Standee (50+ Templates)"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+
                           {/* Open Viewer */}
                           <Link
                             href={`/${doc.slug}`}
@@ -520,6 +531,20 @@ export default function AdminDashboard() {
           }
           documentTitle={qrDoc.title}
           onClose={() => setQrDoc(null)}
+        />
+      )}
+
+      {a4Doc && (
+        <A4PosterStudio
+          isOpen={!!a4Doc}
+          onClose={() => setA4Doc(null)}
+          documentTitle={a4Doc.title}
+          slug={a4Doc.slug}
+          url={
+            typeof window !== 'undefined'
+              ? `${window.location.origin}/${a4Doc.slug}`
+              : `${process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app'}/${a4Doc.slug}`
+          }
         />
       )}
 

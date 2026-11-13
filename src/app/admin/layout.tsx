@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   ExternalLink,
   ChevronRight,
+  Printer,
 } from 'lucide-react';
 
 const LOGO_URL = 'https://www.whizpoint.app/_next/image?url=%2Ficon.png&w=1920&q=75';
@@ -92,6 +93,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       href: `${basePath}/upload?type=a4`,
       icon: FileText,
       badge: '1:1 Direct',
+    },
+    {
+      name: 'A4 Standee Studio',
+      href: `${basePath}/a4-studio`,
+      icon: Printer,
+      badge: '50 Presets',
     },
     {
       name: 'Studio Settings',

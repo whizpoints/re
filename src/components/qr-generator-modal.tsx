@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
-import { X, Upload, Settings2, Download, Crop as CropIcon } from 'lucide-react';
+import { X, Upload, Settings2, Download, Crop as CropIcon, FileText, Sparkles } from 'lucide-react';
 import { StyledQR } from './styled-qr';
+import { A4PosterStudio } from './a4-poster-studio';
 import Cropper from 'react-easy-crop';
 import { Point, Area } from 'react-easy-crop';
 
@@ -14,6 +15,8 @@ interface QRGeneratorModalProps {
 
 export function QRGeneratorModal({ url, onClose, documentTitle }: QRGeneratorModalProps) {
   const [logoUrl, setLogoUrl] = useState<string>('');
+  const [isA4StudioOpen, setIsA4StudioOpen] = useState(false);
+  const slug = url.split('/').filter(Boolean).pop() || 'document';
   
   // Cropper state
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -265,16 +268,36 @@ export function QRGeneratorModal({ url, onClose, documentTitle }: QRGeneratorMod
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-4 border-t border-slate-100 space-y-2.5">
+            <button
+              onClick={() => setIsA4StudioOpen(true)}
+              className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm text-sm"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Print as A4 Standee / Poster (50+ Templates)</span>
+            </button>
+
             <button 
               onClick={downloadQR}
-              className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-xs text-sm"
             >
-              <Download className="w-5 h-5" /> Download Premium QR
+              <Download className="w-4 h-4" /> Download Square QR PNG
             </button>
           </div>
         </div>
       </div>
+
+      {/* Full-Featured A4 Poster Studio */}
+      {isA4StudioOpen && (
+        <A4PosterStudio
+          isOpen={isA4StudioOpen}
+          onClose={() => setIsA4StudioOpen(false)}
+          documentTitle={documentTitle}
+          slug={slug}
+          url={url}
+          initialLogoUrl={logoUrl || undefined}
+        />
+      )}
     </div>
   );
 }
