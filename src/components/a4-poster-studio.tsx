@@ -32,6 +32,7 @@ import { A4_TEMPLATES, A4Template } from '@/lib/templates/a4-templates';
 import {
   A4PosterData,
   renderA4PosterToCanvas,
+  generateReliableQRCanvas,
   downloadA4PDF,
   downloadA4PNG,
   printA4Poster,
@@ -161,16 +162,37 @@ export function A4PosterStudio({
       },
     });
 
+    // Primary: Generate immediately and reliably with canvas error correction
+    const targetColor = customQrColor || selectedTemplate.qrColor || '#0f172a';
+    generateReliableQRCanvas(url, targetColor, centerLogoUrl, qrLogoSize)
+      .then((reliableCanvas) => {
+        setQrDataUrl(reliableCanvas.toDataURL('image/png'));
+      })
+      .catch((err) => {
+        console.warn('Reliable QR generator fallback triggered:', err);
+      });
+
+    // Optional: Also render to qrRef if styler succeeds
     if (qrRef.current) {
       qrRef.current.innerHTML = '';
-      qr.append(qrRef.current);
-
-      setTimeout(() => {
-        const canvas = qrRef.current?.querySelector('canvas') as HTMLCanvasElement;
-        if (canvas) {
-          setQrDataUrl(canvas.toDataURL('image/png'));
-        }
-      }, 100);
+      try {
+        qr.append(qrRef.current);
+        setTimeout(() => {
+          const canvas = qrRef.current?.querySelector('canvas') as HTMLCanvasElement;
+          if (canvas) {
+            try {
+              const dataUrl = canvas.toDataURL('image/png');
+              if (dataUrl && dataUrl.length > 200) {
+                setQrDataUrl(dataUrl);
+              }
+            } catch (e) {
+              // Tainted or unavailable, keep reliable canvas
+            }
+          }
+        }, 150);
+      } catch (e) {
+        // Styler error, reliable canvas already set
+      }
     }
   }, [isOpen, url, customQrColor, selectedTemplate.qrColor, centerLogoUrl, qrDotsType, qrCornersType, qrLogoSize]);
 
@@ -200,6 +222,9 @@ export function A4PosterStudio({
     customBgUrl,
     customBgOpacity,
     qrDataUrl,
+    centerLogoUrl,
+    qrLogoSize,
+    customQrColor,
     showHostingNotice: isProUser ? showHostingNotice : true,
     isProUser,
   }), [
@@ -227,6 +252,9 @@ export function A4PosterStudio({
     customBgUrl,
     customBgOpacity,
     qrDataUrl,
+    centerLogoUrl,
+    qrLogoSize,
+    customQrColor,
     showHostingNotice,
     isProUser,
   ]);

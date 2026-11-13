@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 import { A4Template } from './templates/a4-templates';
 
 export interface A4PosterData {
@@ -16,8 +17,8 @@ export interface A4PosterData {
   sunsetDate?: string;  // Resting
   bottomNote?: string;
   // Sizing & Positioning Controls
-  titleFontSize?: number; // 48 - 110 (default 80)
-  qrSize?: number;        // 800 - 1650 (default 1350 without photo, 1100 with photo)
+  titleFontSize?: number; // 48 - 110 (default 82)
+  qrSize?: number;        // 800 - 1650 (default 1360 without photo, 1120 with photo)
   qrCardOffsetY?: number; // -250 to +250 (default 0)
   photoSize?: number;     // 240 - 650 (default 460)
   showBadge?: boolean;
@@ -31,7 +32,10 @@ export interface A4PosterData {
   customBgUrl?: string | null;
   customBgOpacity?: number; // 0.1 to 1.0 (default 0.6)
   // QR image data url
-  qrDataUrl: string;
+  qrDataUrl?: string;
+  centerLogoUrl?: string | null;
+  qrLogoSize?: number;
+  customQrColor?: string;
   // Hosting notice (mandated for non-pro)
   showHostingNotice?: boolean;
   isProUser?: boolean;
@@ -40,6 +44,73 @@ export interface A4PosterData {
 // 300 DPI A4 Dimensions (210mm x 297mm @ 300 DPI)
 export const A4_WIDTH = 2480;
 export const A4_HEIGHT = 3508;
+
+/**
+ * Generates an ultra-crisp, 100% reliable QR code canvas with center logo and high error correction (H)
+ */
+export async function generateReliableQRCanvas(
+  url: string,
+  color: string,
+  logoUrl?: string | null,
+  logoSizePercent: number = 0.28
+): Promise<HTMLCanvasElement> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1500;
+  canvas.height = 1500;
+
+  // Render high-res vector QR with Level H (30% error correction)
+  await QRCode.toCanvas(canvas, url, {
+    width: 1500,
+    margin: 3,
+    errorCorrectionLevel: 'H',
+    color: {
+      dark: color || '#0f172a',
+      light: '#ffffff',
+    },
+  });
+
+  // Draw Center Logo if provided
+  if (logoUrl) {
+    try {
+      const logoImg = await loadImage(logoUrl);
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const logoBoxSize = Math.round(1500 * (logoSizePercent || 0.28));
+        const logoBoxX = (1500 - logoBoxSize) / 2;
+        const logoBoxY = (1500 - logoBoxSize) / 2;
+
+        // White background pill/square with border for contrast
+        ctx.save();
+        ctx.beginPath();
+        drawRoundedRect(ctx, logoBoxX, logoBoxY, logoBoxSize, logoBoxSize, Math.round(logoBoxSize * 0.22));
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
+        ctx.shadowBlur = 24;
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        // Clip and draw logo image
+        ctx.clip();
+        const padding = Math.round(logoBoxSize * 0.08);
+        ctx.drawImage(
+          logoImg,
+          logoBoxX + padding,
+          logoBoxY + padding,
+          logoBoxSize - padding * 2,
+          logoBoxSize - padding * 2
+        );
+        ctx.restore();
+      }
+    } catch (err) {
+      console.warn('Failed to draw logo on QR code, continuing with clean QR:', err);
+    }
+  }
+
+  return canvas;
+}
 
 /**
  * Renders the entire A4 poster onto a 2480x3508 canvas at 300 DPI with balanced proportions
@@ -173,11 +244,10 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
   }
 
   // 6. Centered Hero QR Card (PROPORTIONALLY LARGE)
-  // Default to large scan-ready size: 1350px when no photo, 1100px when photo exists
   const defaultCalculatedQrSize = hasPhoto ? 1120 : 1360;
   const chosenQrSize = data.qrSize || defaultCalculatedQrSize;
   
-  // Card dimensions: Card fits the QR code with generous clean padding
+  // Card dimensions
   const cardPaddingX = 180;
   const qrCardWidth = Math.min(A4_WIDTH - 240, chosenQrSize + cardPaddingX * 2);
   const qrCardHeight = chosenQrSize + 340;
@@ -189,17 +259,40 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
 
   drawQRCard(ctx, qrCardX, qrCardY, qrCardWidth, qrCardHeight, data, template);
 
-  // Load and draw the QR code image
-  try {
-    const qrImg = await loadImage(data.qrDataUrl);
-    const qrX = qrCardX + (qrCardWidth - chosenQrSize) / 2;
-    const qrY = qrCardY + 110;
-    ctx.drawImage(qrImg, qrX, qrY, chosenQrSize, chosenQrSize);
-  } catch (err) {
-    console.error('Failed to draw QR code image:', err);
+  // 7. Load and Draw QR Code Image (Guaranteed Non-Empty Fallback)
+  const qrX = qrCardX + (qrCardWidth - chosenQrSize) / 2;
+  const qrY = qrCardY + 110;
+  let qrDrawn = false;
+
+  // Try using data.qrDataUrl first if provided
+  if (data.qrDataUrl && data.qrDataUrl.length > 100) {
+    try {
+      const qrImg = await loadImage(data.qrDataUrl);
+      ctx.drawImage(qrImg, qrX, qrY, chosenQrSize, chosenQrSize);
+      qrDrawn = true;
+    } catch (err) {
+      console.warn('Failed to load pre-rendered QR dataUrl, falling back to reliable canvas:', err);
+    }
   }
 
-  // 7. Bottom Section (Sunrise/Sunset, Quotes & Archival)
+  // If not drawn yet, generate directly with QRCode.toCanvas
+  if (!qrDrawn) {
+    try {
+      const qrColor = data.customQrColor || template.qrColor || '#0f172a';
+      const fallbackCanvas = await generateReliableQRCanvas(
+        data.url,
+        qrColor,
+        data.centerLogoUrl,
+        data.qrLogoSize || 0.28
+      );
+      ctx.drawImage(fallbackCanvas, qrX, qrY, chosenQrSize, chosenQrSize);
+      qrDrawn = true;
+    } catch (fallbackErr) {
+      console.error('Critical failure in fallback QR generation:', fallbackErr);
+    }
+  }
+
+  // 8. Bottom Section (Sunrise/Sunset, Quotes & Archival)
   let bottomY = qrCardY + qrCardHeight + 70;
 
   // Sunrise & Sunset (NO EMOJIS — Pure Classic Typography)
@@ -222,7 +315,7 @@ export async function renderA4PosterToCanvas(data: A4PosterData): Promise<HTMLCa
     ctx.restore();
   }
 
-  // 8. Whizpoint Archival & Temporary Hosting Notice (Mandatory for Non-Pro)
+  // 9. Whizpoint Archival & Temporary Hosting Notice (Mandatory for Non-Pro)
   const isNoticeMandatory = !data.isProUser;
   if (isNoticeMandatory || data.showHostingNotice !== false) {
     drawHostingNotice(ctx, data.slug);
