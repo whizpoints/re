@@ -83,7 +83,7 @@ export default async function GalleryPage() {
         {documents.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5">
             {documents.map((doc) => {
-              const coverUrl = doc.pages?.[0];
+              const coverUrl = doc.pages && doc.pages.length > 0 ? `/api/documents/${doc.slug}/cover` : null;
               const formattedDate = new Date(doc.created_at).toLocaleDateString();
 
               return (

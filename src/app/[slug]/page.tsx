@@ -6,12 +6,14 @@ import { sendViewMilestoneEmail } from '@/lib/email';
 import { createViewerToken } from '@/lib/viewer-token';
 
 function getAppBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')) {
+  if (
+    process.env.NEXT_PUBLIC_APP_URL &&
+    !process.env.NEXT_PUBLIC_APP_URL.includes('localhost') &&
+    !process.env.NEXT_PUBLIC_APP_URL.includes('vercel.app')
+  ) {
     return process.env.NEXT_PUBLIC_APP_URL;
   }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
+  // Default to official production domain
   return 'https://e.whizpoint.app';
 }
 
@@ -84,7 +86,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const baseUrl = getAppBaseUrl();
   const docUrl = `${baseUrl}/${doc.slug}`;
-  const ogImage = doc.pages && doc.pages.length > 0 ? doc.pages[0] : `${baseUrl}/og.jpg`;
+  // Use our secure server-side cover endpoint so the raw R2 bucket URL is never leaked in HTML
+  const ogImage = `${baseUrl}/api/documents/${doc.slug}/cover`;
   const description = `Read ${doc.title} on Whizpoint Flipbook. Swipe or scroll to explore this ${doc.pageCount}-page interactive digital document.`;
 
   return {
@@ -131,7 +134,7 @@ export default async function ViewerPage({ params }: { params: Promise<{ slug: s
     '@type': 'Book',
     name: doc.title,
     url: `${baseUrl}/${doc.slug}`,
-    image: doc.pages && doc.pages.length > 0 ? doc.pages[0] : `${baseUrl}/og.jpg`,
+    image: `${baseUrl}/api/documents/${doc.slug}/cover`,
     numberOfPages: doc.pageCount,
     publisher: {
       '@type': 'Organization',
