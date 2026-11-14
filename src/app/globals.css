@@ -52,3 +52,126 @@ body {
 .in-view {
   animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ==============================================================================
+   HIGH-DEFINITION DOCUMENT PRINT ENGINE (Ctrl+P / window.print())
+   ============================================================================== */
+@media print {
+  /* Completely hide all UI chrome, sidebars, buttons, and overlays */
+  header,
+  footer,
+  nav,
+  aside,
+  .no-print,
+  .print-hidden,
+  button,
+  [data-rht-toaster],
+  .floating-controls,
+  .sidebar-container,
+  .page-number-divider,
+  .mobile-page-indicator,
+  .viewer-skeleton,
+  .viewer-progress-bar {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Reset document and viewport */
+  html,
+  body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Flipbook root container */
+  .flipbook-root {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    height: auto !important;
+    min-height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    position: static !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .flipbook-scroll-container {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    height: auto !important;
+    min-height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    position: static !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .flipbook-pages-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    display: block !important;
+    gap: 0 !important;
+    space-y: 0 !important;
+  }
+
+  /* Force each document page to start on a fresh sheet with zero margin */
+  .pdf-page {
+    break-before: auto !important;
+    break-after: page !important;
+    page-break-after: always !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    position: relative !important;
+  }
+
+  /* Canvas rendering */
+  .pdf-page canvas,
+  .pdf-page img {
+    width: auto !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: auto !important;
+    display: block !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 0mm;
+  }
+}

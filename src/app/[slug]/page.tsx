@@ -3,17 +3,28 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import prisma from '@/lib/db';
 import { sendViewMilestoneEmail } from '@/lib/email';
+import { createViewerToken } from '@/lib/viewer-token';
+
+function getAppBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return 'https://e.whizpoint.app';
+}
 
 // Read-only fetch for metadata generation
 async function getDocument(slug: string) {
   try {
     const document = await prisma.document.findUnique({
-      where: { slug }
+      where: { slug },
     });
-    
+
     if (!document) return null;
-    
-    // Map to FlipbookViewer expected props
+
+    // Map to expected props
     return {
       id: document.id,
       title: document.title,
@@ -68,12 +79,12 @@ async function recordViewAndGetDocument(slug: string) {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const doc = await getDocument(slug);
-  
+
   if (!doc) return { title: 'Not Found | Whizpoint Flipbook' };
-  
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
+
+  const baseUrl = getAppBaseUrl();
   const docUrl = `${baseUrl}/${doc.slug}`;
-  const ogImage = (doc.pages && doc.pages.length > 0) ? doc.pages[0] : `${baseUrl}/og.jpg`;
+  const ogImage = doc.pages && doc.pages.length > 0 ? doc.pages[0] : `${baseUrl}/og.jpg`;
   const description = `Read ${doc.title} on Whizpoint Flipbook. Swipe or scroll to explore this ${doc.pageCount}-page interactive digital document.`;
 
   return {
@@ -113,25 +124,43 @@ export default async function ViewerPage({ params }: { params: Promise<{ slug: s
 
   const doc = await recordViewAndGetDocument(slug);
   if (!doc) notFound();
-  
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://e.whizpoint.app';
+
+  const baseUrl = getAppBaseUrl();
   const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Book",
-    "name": doc.title,
-    "url": `${baseUrl}/${doc.slug}`,
-    "image": (doc.pages && doc.pages.length > 0) ? doc.pages[0] : `${baseUrl}/og.jpg`,
-    "numberOfPages": doc.pageCount,
-    "publisher": {
-      "@type": "Organization",
-      "name": "Whizpoint Flipbook"
-    }
+    '@context': 'https://schema.org',
+    '@type': 'Book',
+    name: doc.title,
+    url: `${baseUrl}/${doc.slug}`,
+    image: doc.pages && doc.pages.length > 0 ? doc.pages[0] : `${baseUrl}/og.jpg`,
+    numberOfPages: doc.pageCount,
+    publisher: {
+      '@type': 'Organization',
+      name: 'Whizpoint Flipbook',
+    },
   };
-  
+
+  // Generate cryptographically signed ephemeral viewer token
+  const sessionToken = await createViewerToken(doc.id, doc.slug);
+
+  // SECURITY ARCHITECTURE:
+  // We explicitly DO NOT pass the raw `doc.pages` array of R2 storage URLs to the client props.
+  // This prevents Next.js SSR from injecting <link rel="preload"> in the <head>
+  // and keeps direct Cloudflare R2 bucket URLs completely out of the HTML source code.
+  // The client streams each page securely via /api/documents/[id]/render?page=X&token=... into an HTML5 Canvas.
+  const secureViewerDoc = {
+    id: doc.id,
+    title: doc.title,
+    slug: doc.slug,
+    pageCount: doc.pageCount,
+    logoUrl: doc.logoUrl,
+    views: doc.views,
+    sessionToken,
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <FlipbookViewer doc={doc} />
+      <FlipbookViewer doc={secureViewerDoc} />
     </>
   );
 }

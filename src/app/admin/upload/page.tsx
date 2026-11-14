@@ -9,6 +9,15 @@ import { processPdf, DocumentFormatMode } from '@/lib/pdf-processor';
 
 type Step = 'upload' | 'preview' | 'configure' | 'success';
 
+interface FormatMismatchInfo {
+  isOpen: boolean;
+  detected: 'a3-booklet' | 'a4-direct';
+  current: DocumentFormatMode;
+  file: File | null;
+  sheetCount: number;
+  aspectRatio: number;
+}
+
 function UploadContent() {
   const searchParams = useSearchParams();
   const formatParam = searchParams.get('type') || searchParams.get('format');
@@ -20,6 +29,16 @@ function UploadContent() {
   const [detectedFormat, setDetectedFormat] = useState<'a3-booklet' | 'a4-direct' | null>(null);
   const [originalSheetCount, setOriginalSheetCount] = useState<number>(0);
   
+  // Format Mismatch Pre-Flight Modal State
+  const [formatMismatchModal, setFormatMismatchModal] = useState<FormatMismatchInfo>({
+    isOpen: false,
+    detected: 'a3-booklet',
+    current: 'a4-direct',
+    file: null,
+    sheetCount: 0,
+    aspectRatio: 1.41,
+  });
+
   // Upload State
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -84,7 +103,7 @@ function UploadContent() {
     }
   };
 
-  const handleFileSelect = (f: File) => {
+  const handleFileSelect = async (f: File) => {
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
       toast.error('Please upload a PDF file.');
       return;
@@ -93,7 +112,69 @@ function UploadContent() {
     const cleanName = f.name.replace(/\.pdf$/i, '');
     setTitle(cleanName);
     setSlug(cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
-    processPdfFile(f, docFormat);
+
+    setIsProcessing(true);
+    setProgressMsg('Inspecting document layout and page dimensions...');
+
+    try {
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+      const arrayBuffer = await f.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const firstPage = await pdf.getPage(1);
+      const unscaled = firstPage.getViewport({ scale: 1.0 });
+      const aspectRatio = unscaled.width / unscaled.height;
+      const isLandscape = aspectRatio > 1.15;
+      const sheets = pdf.numPages;
+
+      setIsProcessing(false);
+
+      // PRE-FLIGHT CHECK: Format Mismatch Detection
+      // 1. User selected A4-Direct (or clicked A4 uploader), but the PDF is landscape spreads (A3 format)
+      if (docFormat === 'a4-direct' && isLandscape) {
+        setFormatMismatchModal({
+          isOpen: true,
+          detected: 'a3-booklet',
+          current: 'a4-direct',
+          file: f,
+          sheetCount: sheets,
+          aspectRatio: Number(aspectRatio.toFixed(2)),
+        });
+        return;
+      }
+
+      // 2. User selected A3-Booklet (or clicked A3 uploader), but the PDF has portrait pages (standard A4)
+      if (docFormat === 'a3-booklet' && !isLandscape) {
+        setFormatMismatchModal({
+          isOpen: true,
+          detected: 'a4-direct',
+          current: 'a3-booklet',
+          file: f,
+          sheetCount: sheets,
+          aspectRatio: Number(aspectRatio.toFixed(2)),
+        });
+        return;
+      }
+
+      // If in 'auto' mode or matches:
+      const targetMode: DocumentFormatMode =
+        docFormat === 'auto' ? (isLandscape ? 'a3-booklet' : 'a4-direct') : docFormat;
+
+      processPdfFile(f, targetMode);
+    } catch (err: any) {
+      console.error('Pre-flight PDF inspection failed:', err);
+      setIsProcessing(false);
+      processPdfFile(f, docFormat);
+    }
+  };
+
+  const confirmFormatAndProcess = (chosenMode: DocumentFormatMode) => {
+    if (!formatMismatchModal.file) return;
+    const f = formatMismatchModal.file;
+    setDocFormat(chosenMode);
+    setFormatMismatchModal((prev) => ({ ...prev, isOpen: false }));
+    processPdfFile(f, chosenMode);
   };
 
   const processPdfFile = async (f: File, chosenMode: DocumentFormatMode) => {
@@ -274,7 +355,68 @@ function UploadContent() {
   const currentIndex = getStepIndex(step);
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 font-sans">
+    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 font-sans relative">
+      {/* Format Mismatch Warning Modal */}
+      {formatMismatchModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-200 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center mb-4 shadow-xs">
+              {formatMismatchModal.detected === 'a3-booklet' ? (
+                <BookOpen className="w-6 h-6" />
+              ) : (
+                <FileText className="w-6 h-6" />
+              )}
+            </div>
+
+            <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+              {formatMismatchModal.detected === 'a3-booklet'
+                ? 'A3 Landscape Spreads Detected'
+                : 'Single Portrait Pages Detected (Standard A4)'}
+            </h3>
+
+            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+              {formatMismatchModal.detected === 'a3-booklet' ? (
+                <>
+                  Your PDF contains <strong>landscape sheets (aspect ratio: {formatMismatchModal.aspectRatio})</strong>.
+                  Funeral programs, eulogies, and event booklets designed with 2 pages side-by-side on an A3 sheet work best with{' '}
+                  <strong className="text-blue-600">A3 Booklet Imposition</strong>, which automatically splits each spread down the middle and rearranges them into sequential reading order.
+                </>
+              ) : (
+                <>
+                  Your PDF contains <strong>single portrait pages</strong>. You selected A3 Booklet Imposition, which would split your portrait pages down the middle. We recommend{' '}
+                  <strong className="text-blue-600">Standard 1:1 Direct A4</strong> to preserve your pages without cutting.
+                </>
+              )}
+            </p>
+
+            <div className="mt-6 space-y-2.5">
+              <button
+                type="button"
+                onClick={() => confirmFormatAndProcess(formatMismatchModal.detected)}
+                className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>
+                  {formatMismatchModal.detected === 'a3-booklet'
+                    ? `Switch to A3 Booklet (${formatMismatchModal.sheetCount} spreads → ${formatMismatchModal.sheetCount * 2} sequential A4 pages)`
+                    : `Switch to Standard 1:1 Direct A4 (${formatMismatchModal.sheetCount} pages)`}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => confirmFormatAndProcess(formatMismatchModal.current)}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all text-center cursor-pointer"
+              >
+                {formatMismatchModal.detected === 'a3-booklet'
+                  ? 'Keep 1:1 Direct A4 (Do not split landscape spreads)'
+                  : 'Continue with A3 Booklet anyway'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header & Stepper */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -389,6 +531,18 @@ function UploadContent() {
                   <div className="text-xs text-slate-500 mt-0.5">Uploads single pages directly without cutting or splitting in half</div>
                 </div>
               </button>
+            </div>
+
+            {/* Format Guidance Hint */}
+            <div className="mt-3.5 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/70 flex items-start gap-2.5 text-xs text-slate-700">
+              <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-slate-900 font-semibold block">Uploading an A3 Booklet or Funeral Eulogy?</strong>
+                <span>
+                  If your PDF was designed on wide A3 paper with 2 pages side-by-side, choose <strong>A3 Booklet (Spreads)</strong>.
+                  Our engine automatically splits each sheet down the middle and re-imposes them into sequential reading order (Cover, Page 2, Page 3, Back Cover).
+                </span>
+              </div>
             </div>
           </div>
 
